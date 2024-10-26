@@ -13,6 +13,12 @@
 
 package frc.robot;
 
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.wpilibj.DriverStation;
+
 /**
  * The Constants class provides a convenient place for teams to hold robot-wide numerical or boolean
  * constants. This class should not be used for any other purpose. All constants should be declared
@@ -22,6 +28,12 @@ package frc.robot;
  * constants are needed, to reduce verbosity.
  */
 public final class Constants {
+  public static final double defaultPeriod = 0.02;
+  public static final Rotation2d zeroRotation2d = new Rotation2d();
+  public static final Translation2d zeroTranslation2d = new Translation2d();
+  public static final Pose2d zeroPose2d = new Pose2d();
+  public static final Pose3d zeroPose3d = new Pose3d();
+
   public static final Mode currentMode = Mode.REAL;
 
   public static enum Mode {
@@ -33,5 +45,17 @@ public final class Constants {
 
     /** Replaying from a log file. */
     REPLAY
+  }
+
+  public static boolean isRedAlliance() {
+    var alliance = DriverStation.getAlliance();
+    return alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red;
+  }
+
+  public static class FieldConstants {
+    // official Field dimensions
+    // [insert link]
+    public static double FIELD_LENGTH = 16.54175; // TODO: double check for new game
+    public static double FIELD_WIDTH = 8.21055;
   }
 }
