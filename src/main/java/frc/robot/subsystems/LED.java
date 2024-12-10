@@ -15,7 +15,6 @@ import frc.lib.team2930.LoggerGroup;
 import frc.lib.team2930.TunableNumberGroup;
 import frc.lib.team6328.LoggedTunableNumber;
 import frc.robot.Constants;
-import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
 public class LED extends SubsystemBase {
@@ -26,39 +25,38 @@ public class LED extends SubsystemBase {
       logGroup.buildEnum("robotState");
   private static final LoggerEntry.EnumValue<BaseRobotState> log_baseRobotState =
       logGroup.buildEnum("baseRobotState");
-  private static final LoggerEntry.Bool log_noteInRobot = logGroup.buildBoolean("noteInRobot");
+  private static final LoggerEntry.Bool log_gamepieceInRobot =
+      logGroup.buildBoolean("gamepieceInRobot");
   private static final LoggerEntry.Bool log_isTeleop = logGroup.buildBoolean("isTeleop");
 
   /** Creates a new LED. */
   private AddressableLED led = new AddressableLED(Constants.LEDConstants.PWM_PORT);
 
-  private AddressableLEDBuffer ledBuffer = new AddressableLEDBuffer(13);
+  private AddressableLEDBuffer ledBuffer =
+      new AddressableLEDBuffer(13); // TODO: change length of buffers to new robot's led size
   private AddressableLEDBuffer previousBuffer = new AddressableLEDBuffer(13);
 
   private int snakeShade = 0;
   private int rainbowFirstPixelHue = 0;
   private int levelMeterCount = 0;
   private RobotState robotState = RobotState.BASE;
-  private BaseRobotState baseRobotState = BaseRobotState.NOTE_STATUS;
-  private boolean noteInRobot;
+  private BaseRobotState baseRobotState = BaseRobotState.GAMEPIECE_STATUS;
+  private boolean gamepieceInRobot;
   private Color squirrelOrange = new Color(1, 0.1, 0);
   private TunableNumberGroup group = new TunableNumberGroup("LED");
   private LoggedTunableNumber useTunableLEDs = group.build("useTunableLEDs", 0);
   private LoggedTunableNumber tunableR = group.build("tunableColor/r", 0);
   private LoggedTunableNumber tunableG = group.build("tunableColor/g", 0);
   private LoggedTunableNumber tunableB = group.build("tunableColor/b", 0);
-  private final DoubleSupplier elevatorHeight;
   private int robotLoops = 0;
   private final int robotLoopsTillReady = 20;
   private final Supplier<Boolean> brakeMode;
   private final Supplier<Boolean> gyroConnected;
 
-  public LED(
-      DoubleSupplier elevatorHeight, Supplier<Boolean> brakeMode, Supplier<Boolean> gyroConnected) {
+  public LED(Supplier<Boolean> brakeMode, Supplier<Boolean> gyroConnected) {
     led.setLength(ledBuffer.getLength());
     led.setData(ledBuffer);
     led.start();
-    this.elevatorHeight = elevatorHeight;
     this.brakeMode = brakeMode;
     this.gyroConnected = gyroConnected;
   }
@@ -69,20 +67,19 @@ public class LED extends SubsystemBase {
 
     if (useTunableLEDs.get() == 0) {
       // This method will be called once per scheduler run
+      // TODO: add condition for if robot is not zeroed.
       switch (robotState) {
         case BASE:
           switch (baseRobotState) {
-            case NOTE_STATUS:
+            case GAMEPIECE_STATUS:
               if (robotLoops < robotLoopsTillReady) {
                 setProgressBar(Color.kGreen, (double) robotLoops / (double) robotLoopsTillReady);
-              } else if (elevatorHeight.getAsDouble() < 1 && DriverStation.isDisabled()) {
-                setSnake2(Color.kRed, Color.kMagenta);
               } else if (!brakeMode.get()) {
                 setSnake2(Color.kGreen, Color.kCrimson);
               } else if (!gyroConnected.get() && !Constants.RobotMode.isSimBot()) {
                 setBlinking(Color.kAquamarine, Color.kRed);
               } else {
-                if (noteInRobot) {
+                if (gamepieceInRobot) {
                   setSolidColor(squirrelOrange);
                 } else {
                   if (DriverStation.isTeleop() && DriverStation.isEnabled()) {
@@ -95,18 +92,14 @@ public class LED extends SubsystemBase {
                 }
               }
               break;
-            case AUTO_NOTE_PICKUP:
+            case AUTO_GAMEPIECE_PICKUP:
               setSolidColor(Color.kMagenta);
               break;
 
             case AUTO_DRIVE_TO_POSE:
               setSolidColor(Color.kYellow);
 
-            case AMP_LINE_UP:
-              setBlinking(Color.kWhite, Color.kBlack);
-              break;
-
-            case CLIMB_LINE_UP:
+            case GOAL_LINE_UP:
               setBlinking(Color.kWhite, Color.kBlack);
               break;
 
@@ -116,22 +109,13 @@ public class LED extends SubsystemBase {
             case SHOOTER_SUCCESS:
               setSolidColor(Color.kBlueViolet);
               break;
-            case CLIMB_ALIGN_STAGE1:
-              setSolidColor(Color.kRed);
-              break;
-            case CLIMB_ALIGN_STAGE2:
-              setSolidColor(Color.kYellow);
-              break;
-            case CLIMB_ALIGN_STAGE3:
-              setSolidColor(Color.kBlueViolet);
-              break;
             default:
               setAudioLevelMeter(100);
               break;
           }
           break;
 
-        case AMP_READY_TO_SCORE:
+        case READY_TO_SCORE:
           setSolidColor(Color.kGreen);
           break;
         case TWENTY_SECOND_WARNING:
@@ -162,7 +146,7 @@ public class LED extends SubsystemBase {
 
     log_robotState.info(robotState);
     log_baseRobotState.info(baseRobotState);
-    log_noteInRobot.info(noteInRobot);
+    log_gamepieceInRobot.info(gamepieceInRobot);
     log_isTeleop.info(DriverStation.isTeleop());
 
     if (!sameAsPrevBuffer()) led.setData(ledBuffer);
@@ -296,17 +280,17 @@ public class LED extends SubsystemBase {
     return baseRobotState;
   }
 
-  public void setNoteStatus(boolean noteInRobot) {
-    this.noteInRobot = noteInRobot;
+  public void setGamepieceStatus(boolean gamepieceInRobot) {
+    this.gamepieceInRobot = gamepieceInRobot;
   }
 
-  public boolean getNoteStatus() {
-    return noteInRobot;
+  public boolean getGamepieceStatus() {
+    return gamepieceInRobot;
   }
 
   public enum RobotState {
     TWENTY_SECOND_WARNING,
-    AMP_READY_TO_SCORE,
+    READY_TO_SCORE,
     TEST,
     HOME_SUBSYSTEMS,
     BREAK_MODE_OFF,
@@ -317,16 +301,12 @@ public class LED extends SubsystemBase {
   }
 
   public enum BaseRobotState {
-    NOTE_STATUS,
-    AUTO_NOTE_PICKUP,
+    GAMEPIECE_STATUS,
+    AUTO_GAMEPIECE_PICKUP,
     AUTO_DRIVE_TO_POSE,
-    AMP_LINE_UP,
-    CLIMB_LINE_UP,
+    GOAL_LINE_UP,
     SHOOTING_PREP,
-    SHOOTER_SUCCESS,
-    CLIMB_ALIGN_STAGE1,
-    CLIMB_ALIGN_STAGE2,
-    CLIMB_ALIGN_STAGE3
+    SHOOTER_SUCCESS
   }
 
   public boolean sameAsPrevBuffer() {

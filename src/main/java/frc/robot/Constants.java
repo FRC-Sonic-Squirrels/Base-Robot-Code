@@ -56,7 +56,7 @@ public final class Constants {
   }
 
   public static class RobotMode {
-    private static final RobotType ROBOT = RobotType.ROBOT_2024_MAESTRO;
+    private static final RobotType ROBOT = RobotType.ROBOT_COMPETITION;
 
     private static final Alert invalidRobotAlert =
         new Alert("Invalid robot selected, using competition robot as default.", AlertType.ERROR);
@@ -86,9 +86,9 @@ public final class Constants {
         return RobotType.ROBOT_SIMBOT;
       }
 
-      if (ROBOT != RobotType.ROBOT_2024_MAESTRO) {
+      if (ROBOT != RobotType.ROBOT_COMPETITION) {
         invalidRobotAlert.set(true);
-        return RobotType.ROBOT_2024_MAESTRO;
+        return RobotType.ROBOT_COMPETITION;
       }
 
       return ROBOT;
@@ -104,7 +104,7 @@ public final class Constants {
       ROBOT_SIMBOT(SimulatorRobotConfig::new),
       ROBOT_SIMBOT_REAL_CAMERAS(SimulatorRobotConfig::new),
       ROBOT_2023_RETIRED_ROBER(RobotConfig2023Rober::new),
-      ROBOT_2024_MAESTRO(RobotConfig2024::new);
+      ROBOT_COMPETITION(RobotConfig2024::new);
 
       public final Supplier<RobotConfig> config;
 
@@ -129,96 +129,55 @@ public final class Constants {
     public static double FIELD_WIDTH = 8.211;
 
     // FIXME: double check this number
-    public static final Measure<Distance> SPEAKER_HEIGHT = Units.Inches.of(6 * 12.0 + 12.5);
+    public static final Measure<Distance> TARGET_HEIGHT = Units.Inches.of(6 * 12.0 + 12.5);
 
     // TODO: move to right
-    public static final Translation2d BLUE_SPEAKER_TRANSLATION = new Translation2d(0.0, 5.6);
-    public static final Translation2d RED_SPEAKER_TRANSLATION =
-        AllianceFlipUtil.mirrorTranslation2DOverCenterLine(BLUE_SPEAKER_TRANSLATION);
+    public static final Translation2d BLUE_TARGET_TRANSLATION = new Translation2d(0.0, 5.6);
+    public static final Translation2d RED_TARGET_TRANSLATION =
+        AllianceFlipUtil.mirrorTranslation2DOverCenterLine(BLUE_TARGET_TRANSLATION);
 
-    public static final Translation3d BLUE_SPEAKER_TRANSLATION_3D =
+    public static final Translation3d BLUE_TARGET_TRANSLATION_3D =
         new Translation3d(
-            BLUE_SPEAKER_TRANSLATION.getX(),
-            BLUE_SPEAKER_TRANSLATION.getY(),
-            SPEAKER_HEIGHT.in(Units.Meters));
+            BLUE_TARGET_TRANSLATION.getX(),
+            BLUE_TARGET_TRANSLATION.getY(),
+            TARGET_HEIGHT.in(Units.Meters));
 
-    public static final Translation3d RED_SPEAKER_TRANSLATION_3D =
+    public static final Translation3d RED_TARGET_TRANSLATION_3D =
         new Translation3d(
-            RED_SPEAKER_TRANSLATION.getX(),
-            RED_SPEAKER_TRANSLATION.getY(),
-            SPEAKER_HEIGHT.in(Units.Meters));
+            RED_TARGET_TRANSLATION.getX(),
+            RED_TARGET_TRANSLATION.getY(),
+            TARGET_HEIGHT.in(Units.Meters));
 
-    public static Translation2d getSpeakerTranslation() {
-      return isRedAlliance() ? RED_SPEAKER_TRANSLATION : BLUE_SPEAKER_TRANSLATION;
+    public static Translation2d getTargetTranslation() {
+      return isRedAlliance() ? RED_TARGET_TRANSLATION : BLUE_TARGET_TRANSLATION;
     }
 
-    public static Translation3d getSpeakerTranslation3D() {
-      return isRedAlliance() ? RED_SPEAKER_TRANSLATION_3D : BLUE_SPEAKER_TRANSLATION_3D;
+    public static Translation3d getTargetTranslation3D() {
+      return isRedAlliance() ? RED_TARGET_TRANSLATION_3D : BLUE_TARGET_TRANSLATION_3D;
     }
 
-    public static Measure<Distance> getDistanceToSpeaker(Pose2d pose) {
-      var speakerTranslation = FieldConstants.getSpeakerTranslation();
-      var speakerDx = speakerTranslation.getX() - pose.getX();
-      var speakerDy = speakerTranslation.getY() - pose.getY();
+    public static Measure<Distance> getDistanceToTarget(Pose2d pose) {
+      var targetTranslation = FieldConstants.getTargetTranslation();
+      var targetDx = targetTranslation.getX() - pose.getX();
+      var targetDy = targetTranslation.getY() - pose.getY();
 
-      return Units.Meters.of(Math.hypot(speakerDx, speakerDy));
-    }
-
-    public static final Translation2d STAGE_CENTER_BLUE_ALLIANCE =
-        new Translation2d(4.856116771697998, 4.1);
-
-    public static Pose2d[] getClimbPositionsBlueAlliance(double distFromCenter) {
-      Pose2d[] poses = new Pose2d[3];
-      for (int i = 0; i < poses.length; i++) {
-        Translation2d offset = new Translation2d(distFromCenter, Rotation2d.fromDegrees(i * 120.0));
-        poses[i] =
-            new Pose2d(STAGE_CENTER_BLUE_ALLIANCE.plus(offset), Rotation2d.fromDegrees(i * 120.0));
-      }
-      return poses;
-    }
-
-    public static Translation2d getStageCenter() {
-      return isRedAlliance()
-          ? AllianceFlipUtil.mirrorTranslation2DOverCenterLine(STAGE_CENTER_BLUE_ALLIANCE)
-          : STAGE_CENTER_BLUE_ALLIANCE;
-    }
-
-    public static Pose2d getAmpPreScoringPose() {
-      return new Pose2d(
-          Constants.isRedAlliance() ? 14.76 : Constants.FieldConstants.FIELD_LENGTH - 14.76,
-          7.15,
-          Rotation2d.fromDegrees(90.0));
-    }
-
-    public static Pose2d getAmpScoringPose() {
-      return new Pose2d(
-          Constants.isRedAlliance() ? 14.76 : Constants.FieldConstants.FIELD_LENGTH - 14.76,
-          7.65,
-          Rotation2d.fromDegrees(90.0));
-    }
-
-    public static Translation2d BLUE_SWEEP_TARGET_TRANSLATION =
-        new Translation2d(0.45505082607269287, 7.828024387359619);
-
-    public static Translation2d getSweepTargetTranslation() {
-      return Constants.isRedAlliance()
-          ? AllianceFlipUtil.mirrorTranslation2DOverCenterLine(BLUE_SWEEP_TARGET_TRANSLATION)
-          : BLUE_SWEEP_TARGET_TRANSLATION;
+      return Units.Meters.of(Math.hypot(targetDx, targetDy));
     }
 
     public static class Gamepieces {
-      public static final Measure<Distance> NOTE_INNER_RADIUS = Units.Meters.of(0.127);
-      public static final Measure<Distance> NOTE_OUTER_RADIUS = Units.Meters.of(0.1778);
-      public static final Measure<Distance> NOTE_TOLERANCE = Units.Inches.of(20.0);
-      public static final double NOTE_PERSISTENCE = 0.5;
+      // TODO: add specific gamepiece dimensions for new season
+      public static final Measure<Distance> GAMEPIECE_HEIGHT =
+          Units.Inches.of(0.0); // TODO: change this to new value
+      public static final Measure<Distance> GAMEPIECE_TOLERANCE = Units.Inches.of(20.0);
+      public static final double GAMEPIECE_PERSISTENCE = 0.5;
     }
 
-    public static final Measure<Distance> SPEAKER_GOAL_LENGTH = Units.Inches.of(19);
+    public static final Measure<Distance> TARGET_GOAL_LENGTH = Units.Inches.of(19);
 
     /** distance from bottom of opening to bottom lip of the upper guard */
-    public static final Measure<Distance> SPEAKER_GOAL_HEIGHT = Units.Inches.of(6.0);
+    public static final Measure<Distance> TARGET_GOAL_HEIGHT = Units.Inches.of(6.0);
 
-    public static final Measure<Distance> SPEAKER_GOAL_WIDTH = Units.Inches.of(41);
+    public static final Measure<Distance> TARGET_GOAL_WIDTH = Units.Inches.of(41);
   }
 
   public static class MotorConstants {
@@ -236,23 +195,9 @@ public final class Constants {
     public static final double INTAKE_IDLE_PERCENT_OUT = 0.8;
 
     public static final double INTAKE_INTAKING_PERCENT_OUT = 1.0;
-    public static final double NOTE_IN_ROBOT_WHILE_INTAKING_PERCENT_OUT = 0.5;
 
     public static final double GEARING = 1.0;
     public static final double MOI = 5.0;
-  }
-
-  public static class EndEffectorConstants {
-    public static final double INDEX_PERCENT_OUT = 0.8;
-
-    public static final double INTAKING_PERCENT_OUT = 1.0;
-    public static final double NOTE_IN_ROBOT_WHILE_INTAKING_PERCENT_OUT = 0.5;
-    public static final double CENTERING_NOTE_REVERSE = -0.1;
-
-    public static final double GEARING = 1.33;
-    public static final double MOI = 5.0;
-
-    public static final double SHOOTING_PERCENT_OUT = 0.8;
   }
 
   public static class ElevatorConstants {
@@ -267,19 +212,10 @@ public final class Constants {
     public static final Measure<Distance> SAFE_HEIGHT = Units.Inches.of(15.491);
     public static final Measure<Distance> SUPPLY_CURRENT_LIMIT = Units.Inches.of(40.0);
 
-    public static final Measure<Distance> MAX_HEIGHT_BELOW_STAGE = Units.Inches.of(0.0);
-    public static final Measure<Distance> HEIGHT_ABOVE_CHAIN = Units.Inches.of(25.5);
-
     // FIXME: home position needs to be changed now that we added spacers to
     // swerveModule
     public static final Measure<Distance> HOME_POSITION = Units.Inches.of(7.35);
     public static final Measure<Distance> LOADING_POSITION = Units.Inches.of(7.35); // was 7.5
-
-    public static class ReactionArmConstants {
-      public static final double REACTION_ARM_HOME_ROTATIONS = 0;
-      public static final double REACTION_ARM_DEPLOY_ROTATIONS = 9.92;
-      public static final double REACTION_ARM_AMP_ROTATIONS = 6.333;
-    }
   }
 
   public static class ShooterConstants {
@@ -303,27 +239,7 @@ public final class Constants {
             SHOOTER_OFFSET.getX(), SHOOTER_OFFSET.getY(), Units.Inches.of(5).in(Units.Meters));
 
     public static class Pivot {
-      // Old Calculations:
-      // public static final Rotation2d DISTANCE_TO_SHOOTING_PITCH(double
-      // distanceMeters) {
-      // return new Rotation2d(
-      // Math.atan2(
-      // FieldConstants.SPEAKER_HEIGHT_METERS - SHOOTER_BASE_HEIGHT_METERS,
-      // distanceMeters));
-      // }
-
-      // public static final double PITCH_VEL_RAD_PER_SEC(
-      // double velMetersPerSecond, double distanceMeters) {
-      // // velocity times derivative of distance to shooting pitch formula to get
-      // pitch velocity
-      // return velMetersPerSecond
-      // * -FieldConstants.SPEAKER_HEIGHT_METERS
-      // / (Math.pow(distanceMeters - SHOOTER_OFFSET_METERS.getY(), 2)
-      // + Math.pow(FieldConstants.SPEAKER_HEIGHT_METERS, 2));
-      // }
-
-      // public static final double GEARING = (40.0 / 12.0) * (40.0 / 20.0) * (120.0 /
-      // 10.0);
+      // TODO: fix these values:
       public static final double GEARING = 125.0;
 
       public static final Rotation2d MIN_ANGLE_RAD = Rotation2d.fromDegrees(12.0);
@@ -331,10 +247,6 @@ public final class Constants {
           Rotation2d.fromDegrees(59); // TRUE HARD STOP 59.67
       public static final Rotation2d HOME_POSITION = MIN_ANGLE_RAD;
       public static final Rotation2d TRUE_TOP_HARD_STOP = Rotation2d.fromDegrees(59.67);
-
-      public static final Rotation2d SHOOTER_STOW_PITCH = Rotation2d.fromDegrees(14.0);
-
-      public static final Rotation2d LOADING_POSITION = MIN_ANGLE_RAD;
 
       public static final double SIM_INITIAL_ANGLE = Math.toRadians(14.0);
 
@@ -344,29 +256,10 @@ public final class Constants {
 
       static {
         PITCH_ADJUSTMENT_MAP = new InterpolatingDoubleTreeMap();
-        PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(51).in(Units.Meters), 4.0);
-        PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(106.3).in(Units.Meters), 4.5);
-        PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(114.2).in(Units.Meters), 4.5);
-        PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(145.7).in(Units.Meters), 4.25);
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(50).in(Units.Meters), 1.75); // 3.5
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(70).in(Units.Meters), 1.75);
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(80).in(Units.Meters), 1.75);
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(90.0).in(Units.Meters), 1.75); // 3.5
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(133).in(Units.Meters), 3.05); // 5
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(177).in(Units.Meters), 4.25); // 6.7
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(202).in(Units.Meters), 5.55); // 7.5
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(218).in(Units.Meters), 6.35); // 8.3
-
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(100.0).in(Units.Meters), 3.0);
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(110.0).in(Units.Meters), 3.5); // 4.0
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(120.0).in(Units.Meters), 4.0); // 4.5
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(130.0).in(Units.Meters), 4.5); // 5.0
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(140.0).in(Units.Meters), 5.0); // 5.5
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(150.0).in(Units.Meters), 5.25); // 5.75
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(160.0).in(Units.Meters), 7.0);
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(170.0).in(Units.Meters), 7.25);
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(180.0).in(Units.Meters), 7.5);
-        // PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(210.0).in(Units.Meters), 7.75);
+        PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(0).in(Units.Meters), 0.0);
+        PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(0).in(Units.Meters), 0.0);
+        PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(0).in(Units.Meters), 0.0);
+        PITCH_ADJUSTMENT_MAP.put(Units.Inches.of(0).in(Units.Meters), 0.0);
       }
 
       public static double getPitchOffset(Measure<Distance> distance) {
@@ -379,19 +272,14 @@ public final class Constants {
 
     public static class Launcher {
       public static final double MOI = 5.0;
-      // FIX ME: THIS VALUE HAS TO BE CONFIRMED
+      // FIXME: THIS VALUE HAS TO BE CONFIRMED
       public static final double GEARING = (18.0 / 30.0);
       public static final Measure<Distance> WHEEL_DIAMETER = Units.Inches.of(2.0);
-    }
-
-    public static class Kicker {
-      public static final double MOI = 5.0;
-      public static final double GEARING = 1.0;
-      public static final double KICKING_PERCENT_OUT = 0.8;
     }
   }
 
   public static class LEDConstants {
+    // TODO: check these values
     public static final int PWM_PORT = 9;
     public static final int MAX_LED_LENGTH = 60;
   }
@@ -404,11 +292,10 @@ public final class Constants {
     // 4, 14, 24, 34
     // all these CAN ID's are reserved for the Drivetrain
 
-    // TODO: get actual can ids
+    // TODO: get actual can ids for new season
     public static final int INTAKE_CAN_ID = 34;
 
-    public static final int SHOOTER_LEAD_CAN_ID = 33;
-    public static final int SHOOTER_FOLLOW_CAN_ID = 36;
+    public static final int SHOOTER_CAN_ID = 33;
     public static final int SHOOTER_PIVOT_CAN_ID = 32;
     public static final int SHOOTER_KICKER_CAN_ID = 35;
     public static final int SHOOTER_TOF_CAN_ID = 38;
@@ -416,7 +303,6 @@ public final class Constants {
     public static final int ARM_CAN_ID = 17;
 
     public static final int ELEVATOR_CAN_ID = 37;
-    public static final int REACTION_ARM_CAN_ID = 7;
 
     public static final int END_EFFECTOR_CAN_ID = 30;
     public static final int END_EFFECTOR_INTAKE_SIDE_TOF_CAN_ID = 39;

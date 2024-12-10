@@ -8,28 +8,17 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.lib.team2930.StateMachine;
 import frc.robot.autonomous.substates.AutoSubstateMachineChoreo;
 import frc.robot.autonomous.substates.AutoSubstateMachineDriveTranslation;
-import frc.robot.commands.shooter.ShooterScoreSpeakerStateMachine;
 import frc.robot.configs.RobotConfig;
 import frc.robot.subsystems.LED;
-import frc.robot.subsystems.arm.Arm;
-import frc.robot.subsystems.elevator.Elevator;
-import frc.robot.subsystems.endEffector.EndEffector;
-import frc.robot.subsystems.intake.Intake;
-import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.swerve.DrivetrainWrapper;
 import frc.robot.subsystems.visionGamepiece.VisionGamepiece;
 import java.util.ArrayList;
 import java.util.List;
 
 public class AutoStateMachine extends StateMachine {
-  private Command scoreSpeaker;
+  private Command initialCommand;
   private final AutosSubsystems subsystems;
   private final DrivetrainWrapper drive;
-  private final Shooter shooter;
-  private final EndEffector endEffector;
-  private final Elevator elevator;
-  private final Arm arm;
-  private final Intake intake;
   private final VisionGamepiece visionGamepiece;
   private final LED led;
   private final RobotConfig config;
@@ -90,11 +79,6 @@ public class AutoStateMachine extends StateMachine {
 
     this.subsystems = subsystems;
     this.drive = subsystems.drivetrain();
-    this.shooter = subsystems.shooter();
-    this.endEffector = subsystems.endEffector();
-    this.elevator = subsystems.elevator();
-    this.arm = subsystems.arm();
-    this.intake = subsystems.intake();
     this.visionGamepiece = subsystems.visionGamepiece();
     this.led = subsystems.led();
     this.config = config;
@@ -159,13 +143,12 @@ public class AutoStateMachine extends StateMachine {
   }
 
   private StateHandler autoInitialState() {
-    scoreSpeaker =
-        ShooterScoreSpeakerStateMachine.getAsCommand(drive, shooter, endEffector, intake, led, 5);
+    // TODO: define initial command here
 
-    return suspendForCommand(scoreSpeaker, this::shotDone);
+    return suspendForCommand(initialCommand, this::initialStateFinished);
   }
 
-  private StateHandler shotDone(Command command) {
+  private StateHandler initialStateFinished(Command command) {
     return nextSubState(true);
   }
 

@@ -5,17 +5,12 @@
 package frc.robot.subsystems.shooter;
 
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.lib.team2930.*;
 import frc.lib.team6328.LoggedTunableNumber;
 import frc.robot.Constants;
 import frc.robot.Constants.RobotMode.RobotType;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Shooter extends SubsystemBase {
   private static final String ROOT_TABLE = "Shooter";
@@ -38,26 +33,13 @@ public class Shooter extends SubsystemBase {
       logInputs.buildDecimalArray("LauncherAppliedVolts");
   private static final LoggerEntry.DecimalArray logInputs_launcherCurrentAmps =
       logInputs.buildDecimalArray("LauncherCurrentAmps");
-  private static final LoggerEntry.Decimal logInputs_kickerAppliedVolts =
-      logInputs.buildDecimal("KickerAppliedVolts");
-  private static final LoggerEntry.Decimal logInputs_kickerCurrentAmps =
-      logInputs.buildDecimal("KickerCurrentAmps");
-  private static final LoggerEntry.Decimal logInputs_kickerVelocityRPM =
-      logInputs.buildDecimal("KickerVelocityRPM");
   private static final LoggerEntry.DecimalArray logInputs_tempsCelcius =
       logInputs.buildDecimalArray("TempsCelcius");
-  private static final LoggerEntry.Decimal logInputs_timeOfFlightDistance =
-      logInputs.buildDecimal("TimeOfFlightDistance");
 
   public static final LoggerGroup logGroup = LoggerGroup.build(ROOT_TABLE);
   private static final LoggerEntry.Decimal logPitchDegrees = logGroup.buildDecimal("PitchDegrees");
   private static final LoggerEntry.Decimal logTargetPitchDegrees =
       logGroup.buildDecimal("TargetPitchDegrees");
-  private static final LoggerEntry.Bool logNoteInShooter = logGroup.buildBoolean("NoteInShooter");
-  private static final LoggerEntry.Decimal logPivotPIDLatency =
-      logGroup.buildDecimal("PivotPIDLatency");
-  private static final LoggerEntry.Decimal logLauncherRollersDifference =
-      logGroup.buildDecimal("LauncherRollersDifference");
 
   public static final TunableNumberGroup group = new TunableNumberGroup(ROOT_TABLE);
 
@@ -91,7 +73,7 @@ public class Shooter extends SubsystemBase {
       group.build("distanceToTriggerNote", 10.0);
 
   static {
-    if (Constants.RobotMode.getRobot() == RobotType.ROBOT_2024_MAESTRO) {
+    if (Constants.RobotMode.getRobot() == RobotType.ROBOT_COMPETITION) {
       pivotkP.initDefault(800.0);
       pivotkD.initDefault(0.0);
       pivotkG.initDefault(0.0);
@@ -124,22 +106,11 @@ public class Shooter extends SubsystemBase {
     }
   }
 
-  private final Trigger noteInShooter = new Trigger(this::getToFActivated);
-
   private final ShooterIO io;
   private final ShooterIO.Inputs inputs = new ShooterIO.Inputs(logInputs);
 
-  // Creates a new flat moving average filter
-  // Average will be taken over the last 20 samples
-  private final LinearFilter pivotPidLatencyfilter = LinearFilter.movingAverage(20);
-
-  private final List<PIDTargetMeasurement> pivotTargetMeasurements = new ArrayList<>();
-
-  private double pivotPidLatency = 0.0;
-
   private Rotation2d targetPivotPosition = Constants.zeroRotation2d;
-  private double topRollerTargetLauncherRPM = 0.0;
-  private double bottomRollerTargetLauncherRPM = 0.0;
+  private double rollerTargetRPM = 0.0;
 
   /** Creates a new ShooterSubsystem. */
   public Shooter(ShooterIO io) {
@@ -157,9 +128,6 @@ public class Shooter extends SubsystemBase {
         pivotkG.get(),
         pivotClosedLoopMaxVelocityConstraint.get(),
         pivotClosedLoopMaxAccelerationConstraint.get());
-
-    io.setKickerClosedLoopConstants(
-        kickerkP.get(), kickerkV.get(), 0.0, kickerClosedLoopMaxAccelerationConstraint.get());
   }
 
   @Override
@@ -173,42 +141,10 @@ public class Shooter extends SubsystemBase {
       logInputs_launcherRPM.info(inputs.launcherRPM);
       logInputs_launcherAppliedVolts.info(inputs.launcherAppliedVolts);
       logInputs_launcherCurrentAmps.info(inputs.launcherCurrentAmps);
-      logInputs_kickerAppliedVolts.info(inputs.kickerAppliedVolts);
-      logInputs_kickerCurrentAmps.info(inputs.kickerCurrentAmps);
-      logInputs_kickerVelocityRPM.info(inputs.kickerVelocityRPM);
       logInputs_tempsCelcius.info(inputs.tempsCelcius);
-      logInputs_timeOfFlightDistance.info(inputs.timeOfFlightDistance);
 
       logPitchDegrees.info(inputs.pivotPosition.getDegrees());
       logTargetPitchDegrees.info(targetPivotPosition.getDegrees());
-      logNoteInShooter.info(noteInShooter.getAsBoolean());
-      logLauncherRollersDifference.info(inputs.launcherRPM[1] - inputs.launcherRPM[0]);
-
-      if (Constants.unusedCode) {
-        var timestamp = Timer.getFPGATimestamp();
-        var pivotPositionRadians = inputs.pivotPosition.getRadians();
-
-        pivotTargetMeasurements.add(
-            new PIDTargetMeasurement(
-                timestamp,
-                targetPivotPosition,
-                pivotPositionRadians <= targetPivotPosition.getRadians()));
-
-        for (var it = pivotTargetMeasurements.iterator(); it.hasNext(); ) {
-          var measurement = it.next();
-          var targetRot = measurement.targetRot.getRadians();
-
-          double delta = timestamp - measurement.timestamp;
-          if ((measurement.upDirection && pivotPositionRadians >= targetRot)
-              || (!measurement.upDirection && pivotPositionRadians <= targetRot)) {
-            pivotPidLatency = pivotPidLatencyfilter.calculate(delta);
-            it.remove();
-          } else if (delta >= 1.0) {
-            it.remove();
-          }
-        }
-        logPivotPIDLatency.info(pivotPidLatency);
-      }
 
       var hc = hashCode();
       if (launcherkS.hasChanged(hc)
@@ -235,31 +171,40 @@ public class Shooter extends SubsystemBase {
             pivotClosedLoopMaxVelocityConstraint.get(),
             pivotClosedLoopMaxAccelerationConstraint.get());
       }
-
-      if (kickerkP.hasChanged(hc)
-          || kickerkV.hasChanged(hc)
-          || kickerClosedLoopMaxAccelerationConstraint.hasChanged(hc)) {
-        io.setKickerClosedLoopConstants(
-            kickerkP.get(), kickerkV.get(), 0.0, kickerClosedLoopMaxAccelerationConstraint.get());
-      }
     }
   }
 
-  public Rotation2d getPitch() {
-    return inputs.pivotPosition;
-  }
-
-  public void setPercentOut(double percent) {
+  public void setLauncherPercentOut(double percent) {
     io.setLauncherVoltage(percent * MAX_VOLTAGE);
   }
 
-  public void setPivotClosedLoopConstants(
-      double kP, double kD, double kG, double maxProfiledVelocity, double maxProfiledAcceleration) {
-    io.setPivotClosedLoopConstants(kP, kD, kG, maxProfiledVelocity, maxProfiledAcceleration);
+  public void setLauncherVoltage(double volts) {
+    io.setLauncherVoltage(volts);
+  }
+
+  public void setLauncherRPM(double rpm) {
+    io.setLauncherRPM(rpm);
+    rollerTargetRPM = rpm;
+  }
+
+  public double getRPM() {
+    return inputs.launcherRPM;
+  }
+
+  public boolean isAtTargetRPM() {
+    return isAtTargetRPM(rollerTargetRPM);
+  }
+
+  public boolean isAtTargetRPM(double rpm) {
+    return inputs.launcherRPM > rpm - launcherToleranceRPM.get();
   }
 
   public void setPivotVoltage(double volts) {
     io.setPivotVoltage(volts);
+  }
+
+  public double getPivotVoltage() {
+    return inputs.pivotAppliedVolts;
   }
 
   public void setPivotPosition(Rotation2d rot) {
@@ -267,36 +212,17 @@ public class Shooter extends SubsystemBase {
     targetPivotPosition = rot;
   }
 
-  public void setLauncherVoltage(double volts) {
-    io.setLauncherVoltage(volts);
+  public Rotation2d getPivotPosition() {
+    return inputs.pivotPosition;
   }
 
-  public void setLauncherRPM(double topRollerRPM, double bottomRollerRPM) {
-    io.setLauncherRPM(topRollerRPM, bottomRollerRPM);
-    topRollerTargetLauncherRPM = topRollerRPM;
-    bottomRollerTargetLauncherRPM = bottomRollerRPM;
+  public double getPivotVelocity() {
+    return inputs.pivotVelocityRadsPerSec;
   }
 
-  public void setLauncherRPM(double rpm) {
-    io.setLauncherRPM(rpm, rpm);
-    topRollerTargetLauncherRPM = rpm;
-    bottomRollerTargetLauncherRPM = rpm;
-  }
-
-  public double getRPM() {
-    return inputs.launcherRPM[0];
-  }
-
-  public boolean isAtTargetRPM() {
-    return isAtTargetRPM(topRollerTargetLauncherRPM);
-  }
-
-  public boolean isAtTargetRPM(double rpm) {
-    return inputs.launcherRPM[0] > rpm - launcherToleranceRPM.get();
-  }
-
-  public double getPivotPIDLatency() {
-    return pivotPidLatency;
+  public void setPivotClosedLoopConstants(
+      double kP, double kD, double kG, double maxProfiledVelocity, double maxProfiledAcceleration) {
+    io.setPivotClosedLoopConstants(kP, kD, kG, maxProfiledVelocity, maxProfiledAcceleration);
   }
 
   public boolean isPivotIsAtTarget() {
@@ -312,51 +238,11 @@ public class Shooter extends SubsystemBase {
         <= tolerance.getRadians();
   }
 
-  public void markStartOfNoteLoading() {
-    io.markStartOfNoteLoading();
-  }
-
-  public void markStartOfNoteShooting() {
-    io.markStartOfNoteShooting();
-  }
-
-  public void setKickerPercentOut(double percent) {
-    io.setKickerVoltage(percent * Constants.MAX_VOLTAGE);
-  }
-
-  public double getKickerPercentOut() {
-    return inputs.kickerAppliedVolts / Constants.MAX_VOLTAGE;
-  }
-
-  public double getToFDistance() {
-    return inputs.timeOfFlightDistance;
-  }
-
-  public boolean getToFActivated() {
-    return inputs.timeOfFlightDistance <= distanceToTriggerNoteDetection.get();
-  }
-
-  public boolean noteInShooter() {
-    return noteInShooter.getAsBoolean();
-  }
-
   public void pivotResetHomePosition() {
     io.resetPivotSensorPosition(Constants.ShooterConstants.Pivot.HOME_POSITION);
   }
 
-  public double getPivotVoltage() {
-    return inputs.pivotAppliedVolts;
-  }
-
-  public double getPivotVelocity() {
-    return inputs.pivotVelocityRadsPerSec;
-  }
-
   public boolean setNeutralMode(NeutralModeValue value) {
     return io.setNeutralMode(value);
-  }
-
-  public void setKickerVelocity(double revPerMin) {
-    io.setKickerVelocity(revPerMin);
   }
 }

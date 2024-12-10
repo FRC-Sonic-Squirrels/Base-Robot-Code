@@ -13,30 +13,16 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import com.revrobotics.CANSparkBase.ControlType;
-import com.revrobotics.CANSparkBase.IdleMode;
-import com.revrobotics.CANSparkBase.SoftLimitDirection;
-import com.revrobotics.CANSparkLowLevel.MotorType;
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.RelativeEncoder;
-import com.revrobotics.SparkPIDController;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.Distance;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Units;
-import edu.wpi.first.wpilibj.Servo;
 import frc.robot.Constants;
 import frc.robot.Constants.ElevatorConstants;
 
 public class ElevatorIOReal implements ElevatorIO {
 
   private final TalonFX motor = new TalonFX(Constants.CanIDs.ELEVATOR_CAN_ID);
-  private final CANSparkMax reactionArmMotor =
-      new CANSparkMax(Constants.CanIDs.REACTION_ARM_CAN_ID, MotorType.kBrushless);
-
-  private SparkPIDController reactionArmPIDController = reactionArmMotor.getPIDController();
-  private RelativeEncoder reactionArmEncoder = reactionArmMotor.getEncoder();
 
   private static final double inchesToMotorRot =
       Constants.ElevatorConstants.GEAR_RATIO
@@ -51,9 +37,6 @@ public class ElevatorIOReal implements ElevatorIO {
   private StatusSignal<Double> appliedVolts;
   private StatusSignal<Double> currentAmps;
   private StatusSignal<Double> tempCelsius;
-
-  private Servo leftServo = new Servo(0);
-  private Servo rightServo = new Servo(1);
 
   private final BaseStatusSignal[] refreshSet;
 
@@ -101,21 +84,6 @@ public class ElevatorIOReal implements ElevatorIO {
         new BaseStatusSignal[] {
           rotorPosition, rotorVelocity, appliedVolts, currentAmps, tempCelsius
         };
-
-    reactionArmPIDController.setP(0.1);
-    reactionArmPIDController.setOutputRange(-8, 8);
-    reactionArmMotor.setSmartCurrentLimit(20);
-    reactionArmMotor.setSoftLimit(
-        SoftLimitDirection.kForward,
-        (float) Constants.ElevatorConstants.ReactionArmConstants.REACTION_ARM_DEPLOY_ROTATIONS
-            + (float) 0.5);
-    reactionArmMotor.setSoftLimit(
-        SoftLimitDirection.kReverse,
-        (float) Constants.ElevatorConstants.ReactionArmConstants.REACTION_ARM_HOME_ROTATIONS
-            - (float) 0.5);
-    reactionArmMotor.burnFlash();
-
-    resetReactionArmPosition();
   }
 
   @Override
@@ -127,8 +95,6 @@ public class ElevatorIOReal implements ElevatorIO {
     inputs.appliedVolts = appliedVolts.getValueAsDouble();
     inputs.currentAmps = currentAmps.getValueAsDouble();
     inputs.tempCelsius = tempCelsius.getValueAsDouble();
-    inputs.reactionArmRotations = reactionArmEncoder.getPosition();
-    inputs.reactionArmVoltage = reactionArmMotor.getBusVoltage();
   }
 
   @Override
@@ -179,30 +145,5 @@ public class ElevatorIOReal implements ElevatorIO {
 
     motor.getConfigurator().apply(config);
     return true;
-  }
-
-  @Override
-  public void setLeftServoAngle(Rotation2d angle) {
-    leftServo.setAngle(angle.getDegrees());
-  }
-
-  @Override
-  public void setRightServoAngle(Rotation2d angle) {
-    rightServo.setAngle(angle.getDegrees());
-  }
-
-  @Override
-  public void setReactionArmPosition(double rotations) {
-    reactionArmPIDController.setReference(rotations, ControlType.kPosition);
-  }
-
-  @Override
-  public void resetReactionArmPosition() {
-    reactionArmEncoder.setPosition(0.0);
-  }
-
-  @Override
-  public void setReactionArmIdleMode(IdleMode idleMode) {
-    reactionArmMotor.setIdleMode(idleMode);
   }
 }

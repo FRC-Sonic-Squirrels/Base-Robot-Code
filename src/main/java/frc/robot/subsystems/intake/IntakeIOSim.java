@@ -8,7 +8,7 @@ public class IntakeIOSim implements IntakeIO {
 
   private DCMotorSim motor =
       new DCMotorSim(
-          DCMotor.getFalcon500(1),
+          DCMotor.getKrakenX60Foc(1),
           Constants.IntakeConstants.GEARING,
           Constants.IntakeConstants.MOI);
 

@@ -57,10 +57,10 @@ public class ProcessedGamepieceData {
   }
 
   public boolean sameGamepiece(ProcessedGamepieceData gm) {
-    return getDistance(gm.globalPose).lt(Gamepieces.NOTE_TOLERANCE);
+    return getDistance(gm.globalPose).lt(Gamepieces.GAMEPIECE_TOLERANCE);
   }
 
   public boolean isStale(double timestamp) {
-    return (timestamp - timestamp_RIOFPGA_capture) > Gamepieces.NOTE_PERSISTENCE;
+    return (timestamp - timestamp_RIOFPGA_capture) > Gamepieces.GAMEPIECE_PERSISTENCE;
   }
 }

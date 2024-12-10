@@ -6,11 +6,12 @@ public class ShootingSolver {
   public static final int DebugSpew = 0;
 
   private static final LoggerGroup logGroup = LoggerGroup.build("ShootingSolver");
-  private static final LoggerEntry.Decimal logThetaNote = logGroup.buildDecimal("thetaNote");
-  private static final LoggerEntry.Decimal logSpeakerHeading =
-      logGroup.buildDecimal("speakerHeading");
+  private static final LoggerEntry.Decimal logThetaGamepiece =
+      logGroup.buildDecimal("thetaGamepiece");
+  private static final LoggerEntry.Decimal logTargetHeading =
+      logGroup.buildDecimal("targetHeading");
 
-  private final Translation3d Pspeaker;
+  private final Translation3d Ptarget;
   private final Translation3d PaxisOfRotationShooter;
   private final Translation3d PfrontOfShooter;
   private final double shooterSpeed;
@@ -28,13 +29,13 @@ public class ShootingSolver {
       Translation3d xyOffset) {}
 
   public ShootingSolver(
-      Translation3d Pspeaker,
+      Translation3d Ptarget,
       Translation3d PaxisOfRotationShooter,
       Translation3d PfrontOfShooter,
       double shooterSpeed,
       double shootingTime,
       boolean correctForLateralMotion) {
-    this.Pspeaker = Pspeaker;
+    this.Ptarget = Ptarget;
     this.PaxisOfRotationShooter = PaxisOfRotationShooter;
     this.PfrontOfShooter = PfrontOfShooter;
     this.shooterSpeed = shooterSpeed;
@@ -76,59 +77,59 @@ public class ShootingSolver {
     // 3d velocity vector of robot
     var Vrobot = GeometryUtil.translation2dTo3d(robotVel);
 
-    // Position of robot when note leaves shooter
+    // Position of robot when gamepiece leaves shooter
     var ProbotFuture = Probot.plus(Vrobot.times(timeToShoot));
     if (DebugSpew > 0) {
       System.out.printf("ProbotFuture: %s\n", ProbotFuture);
     }
 
-    // Vector pointing from robot to speaker at time that note leaves shooter
-    var dPspeaker = Pspeaker.minus(ProbotFuture);
+    // Vector pointing from robot to target at time that gamepiece leaves shooter
+    var dPtarget = Ptarget.minus(ProbotFuture);
 
-    // Direction of the note to face the speaker.
-    var thetaNote = Math.atan2(dPspeaker.getY(), dPspeaker.getX());
-    logThetaNote.info(Math.toDegrees(thetaNote));
+    // Direction of the gamepiece to face the target.
+    var thetaGamepiece = Math.atan2(dPtarget.getY(), dPtarget.getX());
+    logThetaGamepiece.info(Math.toDegrees(thetaGamepiece));
 
     // Robot relative translation of axis of rotation of shooter
-    var Paxis = PaxisOfRotationShooter.rotateBy(new Rotation3d(0.0, 0.0, thetaNote));
+    var Paxis = PaxisOfRotationShooter.rotateBy(new Rotation3d(0.0, 0.0, thetaGamepiece));
 
-    // Position of axis when note leaves shooter
+    // Position of axis when gamepiece leaves shooter
     var PaxisFuture = ProbotFuture.plus(Paxis);
 
-    // Vector from the note to the speaker. We need to align with this vector to score.
-    var dPspeakerAxis = Pspeaker.minus(PaxisFuture);
+    // Vector from the gamepiece to the target. We need to align with this vector to score.
+    var dPtargetAxis = Ptarget.minus(PaxisFuture);
 
-    double dPspeakerAxisX = dPspeakerAxis.getX();
-    double dPspeakerAxisY = dPspeakerAxis.getY();
+    double dPtargetAxisX = dPtargetAxis.getX();
+    double dPtargetAxisY = dPtargetAxis.getY();
 
-    // Direction to the speaker from the note.
-    double speakerHeading = Math.atan2(dPspeakerAxisY, dPspeakerAxisX);
+    // Direction to the target from the gamepiece.
+    double targetHeading = Math.atan2(dPtargetAxisY, dPtargetAxisX);
 
-    logSpeakerHeading.info(Math.toDegrees(speakerHeading));
+    logTargetHeading.info(Math.toDegrees(targetHeading));
 
-    // Horizontal dist to speaker
-    var xyDistToSpeaker = Math.hypot(dPspeakerAxisX, dPspeakerAxisY);
+    // Horizontal dist to target
+    var xyDistToTarget = Math.hypot(dPtargetAxisX, dPtargetAxisY);
     if (DebugSpew > 0) {
       System.out.println();
-      System.out.printf("Speaker: heading:%.1f\n", Math.toDegrees(speakerHeading));
-      System.out.printf("         dx:%.1f\n", dPspeakerAxisX);
-      System.out.printf("         dy:%.1f\n", dPspeakerAxisY);
-      System.out.printf("         xyDistToSpeaker: %.1f\n", xyDistToSpeaker);
+      System.out.printf("Target: heading:%.1f\n", Math.toDegrees(targetHeading));
+      System.out.printf("         dx:%.1f\n", dPtargetAxisX);
+      System.out.printf("         dy:%.1f\n", dPtargetAxisY);
+      System.out.printf("         xyDistToTarget: %.1f\n", xyDistToTarget);
 
       System.out.printf("Robot: Vx:%.1f\n", robotVel.getX());
       System.out.printf("       Vy:%.1f\n", robotVel.getY());
     }
 
-    // Desired pitch of the note trajectory
-    double pitchNote = Math.atan2(dPspeakerAxis.getZ(), xyDistToSpeaker);
+    // Desired pitch of the gamepiece trajectory
+    double pitchGamepiece = Math.atan2(dPtargetAxis.getZ(), xyDistToTarget);
 
     // We start assuming the pitch of the shooter is going to be the pitch of the trajectory
-    double shooterPitch = pitchNote;
+    double shooterPitch = pitchGamepiece;
 
     // Maximum number of approximations to perform
     int maxApproximations = 10;
 
-    double targetTheta = speakerHeading;
+    double targetTheta = targetHeading;
 
     if (correctForLateralMotion) {
       // We need to compute this, which depends on shooterPitch, so we need to use successive
@@ -143,10 +144,10 @@ public class ShootingSolver {
         // Vn_x = (Vr_x + Vs * cos(targetTheta))
         // Vn_y = (Vr_y + Vs * sin(targetTheta))
         //
-        // The Vn vector has to be aligned with dPspeakerAxis vector, so
+        // The Vn vector has to be aligned with dPtargetAxis vector, so
         //
-        // Vn_x = c * dPspeakerAxisX
-        // Vn_y = c * dPspeakerAxisY
+        // Vn_x = c * dPtargetAxisX
+        // Vn_y = c * dPtargetAxisY
         //
         // To make it easier, we rotate the reference frame such that the Y velocity will be zero:
         //
@@ -155,9 +156,10 @@ public class ShootingSolver {
         // -> -Vr_y / Vs = sin(targetTheta))
         // ->  targetTheta = arcsin(-Vr_y / Vs)
         //
-        // To verify that the condition is physically possible, we check that the note moves towards
+        // To verify that the condition is physically possible, we check that the gamepiece moves
+        // towards
         // the
-        // speaker:
+        // target:
         //
         // Vn_x = (Vr_x + Vs * cos(targetTheta)) > 0
         //
@@ -166,70 +168,72 @@ public class ShootingSolver {
               "shooterPitch:%.1f  maxApproximations:%d\n",
               Math.toDegrees(shooterPitch), maxApproximations);
         }
-        var VnoteVertical = shooterSpeed * Math.sin(shooterPitch);
-        var VnoteHorizontal = shooterSpeed * Math.cos(shooterPitch);
-        var noteRelativeVel = new Translation2d(VnoteHorizontal, 0);
+        var VgamepieceVertical = shooterSpeed * Math.sin(shooterPitch);
+        var VgamepieceHorizontal = shooterSpeed * Math.cos(shooterPitch);
+        var gamepieceRelativeVel = new Translation2d(VgamepieceHorizontal, 0);
 
-        Rotation2d frameRotation = Rotation2d.fromRadians(-speakerHeading);
+        Rotation2d frameRotation = Rotation2d.fromRadians(-targetHeading);
         var robotVelInNewFrame = robotVel.rotateBy(frameRotation);
-        var noteRelativeVelInNewFrame = noteRelativeVel.rotateBy(frameRotation);
+        var gamepieceRelativeVelInNewFrame = gamepieceRelativeVel.rotateBy(frameRotation);
 
         double robotVelXInNewFrame = robotVelInNewFrame.getX();
         double robotVelYInNewFrame = robotVelInNewFrame.getY();
-        double noteVelXInNewFrame = noteRelativeVelInNewFrame.getX();
-        double noteVelYInNewFrame = noteRelativeVelInNewFrame.getY();
+        double gamepieceVelXInNewFrame = gamepieceRelativeVelInNewFrame.getX();
+        double gamepieceVelYInNewFrame = gamepieceRelativeVelInNewFrame.getY();
 
         if (DebugSpew > 1) {
           System.out.printf("NewFrame: robotVelX:%.1f\n", robotVelXInNewFrame);
           System.out.printf("          robotVelY:%.1f\n", robotVelYInNewFrame);
-          System.out.printf("          noteVelX :%.1f\n", noteVelXInNewFrame);
-          System.out.printf("          noteVelY :%.1f\n", noteVelYInNewFrame);
+          System.out.printf("          gamepieceVelX :%.1f\n", gamepieceVelXInNewFrame);
+          System.out.printf("          gamepieceVelY :%.1f\n", gamepieceVelYInNewFrame);
         }
 
-        yawInNewFrame = Math.asin(-robotVelYInNewFrame / VnoteHorizontal);
+        yawInNewFrame = Math.asin(-robotVelYInNewFrame / VgamepieceHorizontal);
 
         if (Double.isNaN(yawInNewFrame)
-            || (robotVelXInNewFrame + VnoteHorizontal * Math.cos(yawInNewFrame) <= 0)) {
+            || (robotVelXInNewFrame + VgamepieceHorizontal * Math.cos(yawInNewFrame) <= 0)) {
           return null;
         }
 
-        var VnoteHorizontal_FieldRelative =
-            robotVelXInNewFrame + VnoteHorizontal * Math.cos(yawInNewFrame);
+        var VgamepieceHorizontal_FieldRelative =
+            robotVelXInNewFrame + VgamepieceHorizontal * Math.cos(yawInNewFrame);
 
         if (DebugSpew > 2) // Check equation outputs.
         {
           double robotVelX = robotVel.getX();
           double robotVelY = robotVel.getY();
-          double targetTheta2 = speakerHeading + yawInNewFrame;
+          double targetTheta2 = targetHeading + yawInNewFrame;
 
-          double noteX = robotVelX + VnoteHorizontal * Math.cos(targetTheta2);
-          double noteY = robotVelY + VnoteHorizontal * Math.sin(targetTheta2);
-          double nodeHeading = Math.atan2(noteY, noteX);
+          double gamepieceX = robotVelX + VgamepieceHorizontal * Math.cos(targetTheta2);
+          double gamepieceY = robotVelY + VgamepieceHorizontal * Math.sin(targetTheta2);
+          double nodeHeading = Math.atan2(gamepieceY, gamepieceX);
           System.out.printf(
-              "nodeHeading: %.1f  noteX:%.1f noteY:%.1f\n",
-              Math.toDegrees(nodeHeading), noteX, noteY);
+              "gamepieceHeading: %.1f  gamepieceX:%.1f gamepieceY:%.1f\n",
+              Math.toDegrees(nodeHeading), gamepieceX, gamepieceY);
         }
 
-        // We have to verify that after the adjustment the note is still pointing to the speaker
+        // We have to verify that after the adjustment the gamepiece is still pointing to the
+        // target
 
-        // Desired pitch of the note trajectory
-        double pitchNoteNew = Math.atan2(VnoteVertical, VnoteHorizontal_FieldRelative);
+        // Desired pitch of the gamepiece trajectory
+        double pitchGamepieceNew =
+            Math.atan2(VgamepieceVertical, VgamepieceHorizontal_FieldRelative);
 
         if (DebugSpew > 1) {
-          System.out.printf("Note: NewPitch:%.1f\n", Math.toDegrees(pitchNoteNew));
-          System.out.printf("      DesiredPitch:%.1f\n", Math.toDegrees(pitchNote));
+          System.out.printf("Gamepiece: NewPitch:%.1f\n", Math.toDegrees(pitchGamepieceNew));
+          System.out.printf("      DesiredPitch:%.1f\n", Math.toDegrees(pitchGamepiece));
           System.out.printf("      Yaw:%.1f\n", Math.toDegrees(yawInNewFrame));
-          System.out.printf("      VnoteVertical:%.1f\n", VnoteVertical);
-          System.out.printf("      VnoteHorizontal:%.1f\n", VnoteHorizontal);
+          System.out.printf("      VgamepieceVertical:%.1f\n", VgamepieceVertical);
+          System.out.printf("      VgamepieceHorizontal:%.1f\n", VgamepieceHorizontal);
           System.out.printf(
-              "      VnoteHorizontalFieldRelative:%.1f\n", VnoteHorizontal_FieldRelative);
+              "      VgamepieceHorizontalFieldRelative:%.1f\n", VgamepieceHorizontal_FieldRelative);
         }
 
-        if (Math.toDegrees(Math.abs(pitchNoteNew - pitchNote)) < 0.1) {
+        if (Math.toDegrees(Math.abs(pitchGamepieceNew - pitchGamepiece)) < 0.1) {
           break;
         }
 
-        shooterPitch -= (pitchNoteNew - pitchNote);
+        shooterPitch -= (pitchGamepieceNew - pitchGamepiece);
 
         if (maxApproximations-- <= 0) {
           break;
@@ -242,8 +246,8 @@ public class ShootingSolver {
     var PaxisFinal = PaxisOfRotationShooter.rotateBy(new Rotation3d(0.0, 0.0, targetTheta));
     var PfrontFinal = PfrontOfShooter.rotateBy(new Rotation3d(0.0, 0.0, targetTheta));
 
-    double axisDistance = Pspeaker.getDistance(ProbotFuture.plus(PaxisFinal));
-    double frontDistance = Pspeaker.getDistance(ProbotFuture.plus(PfrontFinal));
+    double axisDistance = Ptarget.getDistance(ProbotFuture.plus(PaxisFinal));
+    double frontDistance = Ptarget.getDistance(ProbotFuture.plus(PfrontFinal));
 
     if (frontDistance > axisDistance) {
       targetTheta += Math.PI;
@@ -260,7 +264,7 @@ public class ShootingSolver {
         new Rotation2d(targetTheta),
         rateOfRotation,
         new Rotation2d(shooterPitch),
-        xyDistToSpeaker,
-        dPspeaker);
+        xyDistToTarget,
+        dPtarget);
   }
 }

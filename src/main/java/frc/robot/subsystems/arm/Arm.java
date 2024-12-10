@@ -53,7 +53,7 @@ public class Arm extends SubsystemBase {
       group.build("defaultClosedLoopMaxAccelerationConstraint");
 
   static {
-    if (Constants.RobotMode.getRobot() == RobotType.ROBOT_2024_MAESTRO) {
+    if (Constants.RobotMode.getRobot() == RobotType.ROBOT_COMPETITION) {
       kP.initDefault(70.0);
       kD.initDefault(1.6);
       kG.initDefault(0.0);

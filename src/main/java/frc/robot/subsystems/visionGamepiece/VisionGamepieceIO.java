@@ -12,7 +12,6 @@ public interface VisionGamepieceIO {
     public double[] area = new double[] {};
     public int targetCount = 0;
     public double aprilTagYaw = 0.0;
-    public boolean seesStageTags = false;
     public int pipelineIndex;
   }
 

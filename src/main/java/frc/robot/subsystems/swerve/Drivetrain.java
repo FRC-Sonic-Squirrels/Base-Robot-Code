@@ -111,25 +111,8 @@ public class Drivetrain extends SubsystemBase {
   private static final LoggerEntry.Struct<Pose2d> logLocalization_RobotPosition_RAW_ODOMETRY =
       logGroupLocalization.buildStruct(Pose2d.class, "RobotPosition_RAW_ODOMETRY");
 
-  private static final LoggerEntry.Struct<Pose2d> logLocalization_RobotPosition_low =
-      logGroupLocalization.buildStruct(Pose2d.class, "RobotPosition_0.6");
   private static final LoggerEntry.Struct<Pose2d> logLocalization_RobotPosition =
       logGroupLocalization.buildStruct(Pose2d.class, "RobotPosition");
-  private static final LoggerEntry.Struct<Pose2d> logLocalization_RobotPosition_high =
-      logGroupLocalization.buildStruct(Pose2d.class, "RobotPosition_2.4");
-  private static final LoggerEntry.Struct<Pose2d> logLocalization_RobotPosition_super =
-      logGroupLocalization.buildStruct(Pose2d.class, "RobotPosition_10.0");
-  private static final LoggerEntry.Struct<Pose2d> logLocalization_RobotPositionWithVision =
-      logGroupLocalization.buildStruct(Pose2d.class, "RobotPosition_with_vision");
-
-  private static final LoggerEntry.Struct<Pose2d> logLocalization_StageRedOnly =
-      logGroupLocalization.buildStruct(Pose2d.class, "RobotPosition_stage_Red");
-
-  private static final LoggerEntry.Struct<Pose2d> logLocalization_StageBlueOnly =
-      logGroupLocalization.buildStruct(Pose2d.class, "RobotPosition_stage_Blue");
-
-  private static final LoggerEntry.Struct<Pose2d> logLocalization_Global =
-      logGroupLocalization.buildStruct(Pose2d.class, "RobotPosition_global");
 
   private static final LoggerEntry.Decimal logTimeSinceVision =
       logGroupLocalization.buildDecimal("timeSinceVision");
@@ -173,11 +156,6 @@ public class Drivetrain extends SubsystemBase {
   private Pose2d rawOdometryPose = Constants.zeroPose2d;
 
   private final PoseEstimator poseEstimator;
-  private final PoseEstimator poseEstimatorLow;
-  private final PoseEstimator poseEstimatorHigh;
-  private final PoseEstimator poseEstimatorSuper;
-  private final PoseEstimator poseEstimatorStageBlue;
-  private final PoseEstimator poseEstimatorStageRed;
   private final PoseEstimator poseEstimatorGlobal;
 
   private final Field2d field2d = new Field2d();
@@ -206,15 +184,12 @@ public class Drivetrain extends SubsystemBase {
 
     kinematics = config.getSwerveDriveKinematics();
 
-    int[] tagsSpeakersAndAmps = new int[] {3, 4, /*5, 6,*/ 7, 8};
-    int[] tagsGlobal = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+    int[] tagsTargets = new int[] {3, 4, 5, 6, 7, 8}; // TODO: change to new season's tag numbers
+    int[] tagsGlobal = {
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
+    }; // TODO: change to new season's tag numbers
 
-    poseEstimator = new PoseEstimator(1.2, 1.2, 0.3, tagsSpeakersAndAmps);
-    poseEstimatorLow = new PoseEstimator(0.6, 0.6, 0.3, tagsSpeakersAndAmps);
-    poseEstimatorHigh = new PoseEstimator(2.4, 2.4, 0.3, tagsSpeakersAndAmps);
-    poseEstimatorSuper = new PoseEstimator(10.0, 10.0, 0.3, tagsSpeakersAndAmps);
-    poseEstimatorStageBlue = new PoseEstimator(0.6, 0.6, 0.1, new int[] {14, 15, 16});
-    poseEstimatorStageRed = new PoseEstimator(0.6, 0.6, 0.1, new int[] {11, 12, 13});
+    poseEstimator = new PoseEstimator(1.2, 1.2, 0.3, tagsTargets);
     poseEstimatorGlobal = new PoseEstimator(0.4, 0.4, 0.3, tagsGlobal);
 
     var thread = new Thread(this::runOdometry);
@@ -261,18 +236,6 @@ public class Drivetrain extends SubsystemBase {
       var poseEstimatorPose = getPoseEstimatorPose();
       var visionStaleness = getVisionStaleness();
       logLocalization_RobotPosition.info(poseEstimatorPose);
-
-      if (Constants.unusedCode) {
-        logLocalization_RobotPosition_low.info(poseEstimatorLow.getLatestPose());
-        logLocalization_RobotPosition_high.info(poseEstimatorHigh.getLatestPose());
-        logLocalization_RobotPosition_super.info(poseEstimatorSuper.getLatestPose());
-      }
-      if (visionStaleness < 0.5) logLocalization_RobotPositionWithVision.info(poseEstimatorPose);
-
-      logLocalization_StageRedOnly.info(getPoseEstimatorPoseStageRed());
-      logLocalization_StageBlueOnly.info(getPoseEstimatorPoseStageBlue());
-
-      logLocalization_Global.info(getPoseEstimatorPoseAllTags());
 
       field2d.setRobotPose(poseEstimatorPose);
       SmartDashboard.putData("Localization/field2d", field2d);
@@ -432,18 +395,6 @@ public class Drivetrain extends SubsystemBase {
             rawOdometryPose = rawOdometryPose.exp(twist);
 
             poseEstimator.addDriveData(timestamp, twist);
-            poseEstimatorStageRed.addDriveData(timestamp, twist);
-            poseEstimatorStageBlue.addDriveData(timestamp, twist);
-
-            if (Constants.unusedCode) {
-              poseEstimatorLow.addDriveData(timestamp, twist);
-              poseEstimatorHigh.addDriveData(timestamp, twist);
-              poseEstimatorSuper.addDriveData(timestamp, twist);
-            }
-
-            if (!Constants.unusedCode) {
-              poseEstimatorGlobal.addDriveData(timestamp, twist);
-            }
           }
         }
       } catch (Exception e) {
@@ -606,21 +557,6 @@ public class Drivetrain extends SubsystemBase {
     {
       try (var ignored2 = timing_vision.start()) {
         poseEstimator.addVisionData(visionData);
-        if (Constants.isRedAlliance()) {
-          poseEstimatorStageRed.addVisionData(visionData);
-        } else {
-          poseEstimatorStageBlue.addVisionData(visionData);
-        }
-
-        if (Constants.unusedCode) {
-          poseEstimatorLow.addVisionData(visionData);
-          poseEstimatorHigh.addVisionData(visionData);
-          poseEstimatorSuper.addVisionData(visionData);
-        }
-
-        if (!Constants.unusedCode) {
-          poseEstimatorGlobal.addVisionData(visionData);
-        }
       }
     }
   }
@@ -658,27 +594,6 @@ public class Drivetrain extends SubsystemBase {
     }
   }
 
-  public Pose2d getPoseEstimatorPoseStageRed() {
-    try (var ignored = odometryLock.lock()) // Prevents odometry updates while reading data
-    {
-      return poseEstimatorStageRed.getLatestPose();
-    }
-  }
-
-  public Pose2d getPoseEstimatorPoseStageBlue() {
-    try (var ignored = odometryLock.lock()) // Prevents odometry updates while reading data
-    {
-      return poseEstimatorStageBlue.getLatestPose();
-    }
-  }
-
-  public Pose2d getPoseEstimatorPoseAllTags() {
-    try (var ignored = odometryLock.lock()) // Prevents odometry updates while reading data
-    {
-      return poseEstimatorGlobal.getLatestPose();
-    }
-  }
-
   // public Rotation2d getRotation() {
   //   return getPoseEstimatorPose().getRotation();
   // }
@@ -692,15 +607,6 @@ public class Drivetrain extends SubsystemBase {
     try (var ignored = odometryLock.lock()) // Prevents odometry updates while reading data
     {
       this.poseEstimator.resetPose(pose, Utils.getCurrentTimeSeconds() + 0.2);
-      this.poseEstimatorStageBlue.resetPose(pose, Utils.getCurrentTimeSeconds() + 0.2);
-      this.poseEstimatorStageRed.resetPose(pose, Utils.getCurrentTimeSeconds() + 0.2);
-      this.poseEstimatorGlobal.resetPose(pose, Utils.getCurrentTimeSeconds() + 0.2);
-
-      if (Constants.unusedCode) {
-        this.poseEstimatorLow.resetPose(pose, Utils.getCurrentTimeSeconds() + 0.2);
-        this.poseEstimatorHigh.resetPose(pose, Utils.getCurrentTimeSeconds() + 0.2);
-        this.poseEstimatorSuper.resetPose(pose, Utils.getCurrentTimeSeconds() + 0.2);
-      }
 
       this.rawOdometryPose = pose;
     }

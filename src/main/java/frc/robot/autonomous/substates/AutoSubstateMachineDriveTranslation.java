@@ -43,7 +43,7 @@ public class AutoSubstateMachineDriveTranslation extends AutoSubstateMachine {
   }
 
   private StateHandler initDriveToGamepiece() {
-    intakeCommand = new IntakeGamepiece(intake, endEffector, shooter, arm, elevator);
+    intakeCommand = new IntakeGamepiece();
     intakeCommand.schedule();
 
     driveToGamepieceHelper =
@@ -60,21 +60,22 @@ public class AutoSubstateMachineDriveTranslation extends AutoSubstateMachine {
             gamepieceTranslation, drive.getPoseEstimatorPose(true));
 
     if (useVisionForGamepiece()) {
-      led.setBaseRobotState(BaseRobotState.NOTE_STATUS);
+      led.setBaseRobotState(BaseRobotState.GAMEPIECE_STATUS);
       return stateWithName("visionPickupGamepiece", super::visionPickupGamepiece);
     }
 
-    if (!endEffector.noteInEndEffector()) {
+    // TODO: change to if no gamepiece is posessed
+    if (true) {
       drive.setVelocityOverride(speeds);
       if (driveToGamepieceHelper.isAtTarget()) {
         drive.resetVelocityOverride();
-        led.setBaseRobotState(BaseRobotState.NOTE_STATUS);
+        led.setBaseRobotState(BaseRobotState.GAMEPIECE_STATUS);
         return super::gamepieceConfirmation;
       }
       return null;
     }
     drive.resetVelocityOverride();
-    led.setBaseRobotState(BaseRobotState.NOTE_STATUS);
+    led.setBaseRobotState(BaseRobotState.GAMEPIECE_STATUS);
     return stateWithName("prepFollowPathToShooting", super::prepFollowPathToShooting);
   }
 

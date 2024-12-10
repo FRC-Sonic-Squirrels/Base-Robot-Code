@@ -9,6 +9,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import frc.lib.team2930.AllianceFlipUtil;
 import frc.lib.team2930.LoggerEntry;
 import frc.lib.team2930.LoggerGroup;
@@ -20,26 +21,15 @@ import frc.robot.autonomous.ChoreoHelper;
 import frc.robot.autonomous.ChoreoTrajectoryWithName;
 import frc.robot.autonomous.DriveToGamepieceHelper;
 import frc.robot.commands.intake.IntakeGamepiece;
-import frc.robot.commands.shooter.ShooterScoreSpeakerStateMachine;
 import frc.robot.configs.RobotConfig;
 import frc.robot.subsystems.LED;
 import frc.robot.subsystems.LED.BaseRobotState;
-import frc.robot.subsystems.arm.Arm;
-import frc.robot.subsystems.elevator.Elevator;
-import frc.robot.subsystems.endEffector.EndEffector;
-import frc.robot.subsystems.intake.Intake;
-import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.swerve.DrivetrainWrapper;
 import frc.robot.subsystems.visionGamepiece.ProcessedGamepieceData;
 import java.util.function.Supplier;
 
 public abstract class AutoSubstateMachine extends StateMachine {
   protected final DrivetrainWrapper drive;
-  protected final Shooter shooter;
-  protected final EndEffector endEffector;
-  protected final Intake intake;
-  protected final Elevator elevator;
-  protected final Arm arm;
   protected final LED led;
   protected final RobotConfig config;
   protected final ChoreoTrajectoryWithName trajToShoot;
@@ -48,21 +38,21 @@ public abstract class AutoSubstateMachine extends StateMachine {
   private final boolean ploppedGamepiece;
   protected ChoreoHelper choreoHelper;
   protected DriveToGamepieceHelper driveToGamepieceHelper;
-  public Command scoreSpeaker;
+  public Command score;
   protected IntakeGamepiece intakeCommand;
   protected Translation2d gamepieceTranslation;
   private Translation2d lastSeenGamepiece;
 
   private static final LoggerGroup logGroupGPVision = LoggerGroup.build("AutoGamepieceVision");
   private static final LoggerEntry.Text log_GPVisionStatus = logGroupGPVision.buildString("status");
-  private static final LoggerEntry.Decimal log_GPVisionDetectedNoteDistanceFromExpectedTarget =
-      logGroupGPVision.buildDecimal("detectedNoteDistanceFromExpectedTarget");
+  private static final LoggerEntry.Decimal log_GPVisionDetectedGamepieceDistanceFromExpectedTarget =
+      logGroupGPVision.buildDecimal("detectedGamepieceDistanceFromExpectedTarget");
   private static final LoggerEntry.Decimal log_GPVisionDistanceFromRobot =
       logGroupGPVision.buildDecimal("distanceFromRobot");
   private static final LoggerEntry.Bool log_GPVisionWithinDistanceToRobot =
       logGroupGPVision.buildBoolean("withinDistanceToRobot");
-  private static final LoggerEntry.Bool log_GPVisionDetectedNoteWithinExpectedRange =
-      logGroupGPVision.buildBoolean("detectedNoteWithinExpectedRange");
+  private static final LoggerEntry.Bool log_GPVisionDetectedGamepieceWithinExpectedRange =
+      logGroupGPVision.buildBoolean("detectedGamepieceWithinExpectedRange");
 
   private static final TunableNumberGroup groupTunable =
       new TunableNumberGroup("AutoSubstateMachine");
@@ -90,11 +80,6 @@ public abstract class AutoSubstateMachine extends StateMachine {
     super(name);
 
     this.drive = subsystems.drivetrain();
-    this.shooter = subsystems.shooter();
-    this.endEffector = subsystems.endEffector();
-    this.intake = subsystems.intake();
-    this.elevator = subsystems.elevator();
-    this.arm = subsystems.arm();
     this.led = subsystems.led();
     this.useVision = useVision;
     this.ploppedGamepiece = ploppedGamepiece;
@@ -105,7 +90,7 @@ public abstract class AutoSubstateMachine extends StateMachine {
   }
 
   protected StateHandler visionPickupGamepiece() {
-    led.setBaseRobotState(BaseRobotState.AUTO_NOTE_PICKUP);
+    led.setBaseRobotState(BaseRobotState.AUTO_GAMEPIECE_PICKUP);
     ProcessedGamepieceData gamepieceData = closestGamepiece.get();
     if (gamepieceData != null
         && useVisionForGamepiece()
@@ -119,27 +104,28 @@ public abstract class AutoSubstateMachine extends StateMachine {
 
     if (speeds != null) drive.setVelocityOverride(speeds);
 
-    if (!endEffector.noteInEndEffector()) {
+    // TODO: change this condition to whether gamepiece is posessed:
+    if (false) {
       if (driveToGamepieceHelper.isAtTarget()) {
         drive.resetVelocityOverride();
-        led.setBaseRobotState(BaseRobotState.NOTE_STATUS);
+        led.setBaseRobotState(BaseRobotState.GAMEPIECE_STATUS);
         return setStopped();
       }
       return null;
     }
     drive.resetVelocityOverride();
-    led.setBaseRobotState(BaseRobotState.NOTE_STATUS);
+    led.setBaseRobotState(BaseRobotState.GAMEPIECE_STATUS);
     return stateWithName("prepFollowPathToShooting", this::prepFollowPathToShooting);
   }
 
   protected StateHandler prepFollowPathToShooting() {
     intakeCommand.cancel();
 
-    scoreSpeaker =
-        ShooterScoreSpeakerStateMachine.getAsCommand(drive, shooter, endEffector, intake, led, 5);
+    // TODO: Change to scoring command
+    score = Commands.runOnce(null, null);
 
     spawnCommand(
-        scoreSpeaker,
+        score,
         (command) -> {
           drive.resetVelocityOverride();
           return setDone();
@@ -174,7 +160,8 @@ public abstract class AutoSubstateMachine extends StateMachine {
   }
 
   protected StateHandler gamepieceConfirmation() {
-    if (endEffector.noteInEndEffector()) {
+    // TODO: change condition to if gamepiece is posessed.
+    if (false) {
       return stateWithName("prepFollowPathToShooting", this::prepFollowPathToShooting);
     }
     if (timeFromStartOfState() >= confirmationTime.get()) {
@@ -186,7 +173,7 @@ public abstract class AutoSubstateMachine extends StateMachine {
   protected boolean useVisionForGamepiece() {
     if (!useVision) {
       log_GPVisionStatus.info("disabled");
-      log_GPVisionDetectedNoteDistanceFromExpectedTarget.info(-1);
+      log_GPVisionDetectedGamepieceDistanceFromExpectedTarget.info(-1);
       log_GPVisionDistanceFromRobot.info(-1);
       return false;
     }
@@ -194,7 +181,7 @@ public abstract class AutoSubstateMachine extends StateMachine {
     ProcessedGamepieceData gamepieceData = closestGamepiece.get();
     if (gamepieceData == null) {
       log_GPVisionStatus.info("data null");
-      log_GPVisionDetectedNoteDistanceFromExpectedTarget.info(-1);
+      log_GPVisionDetectedGamepieceDistanceFromExpectedTarget.info(-1);
       log_GPVisionDistanceFromRobot.info(-1);
       return false;
     }
@@ -210,10 +197,10 @@ public abstract class AutoSubstateMachine extends StateMachine {
     log_GPVisionStatus.info(
         withInBeginDriveDistance && withInExpectedTargetDistance ? "SUCCESSFUL" : "FAILED_CHECKS");
 
-    log_GPVisionDetectedNoteDistanceFromExpectedTarget.info(distanceToTarget);
+    log_GPVisionDetectedGamepieceDistanceFromExpectedTarget.info(distanceToTarget);
     log_GPVisionDistanceFromRobot.info(distanceToRobot);
     log_GPVisionWithinDistanceToRobot.info(withInBeginDriveDistance);
-    log_GPVisionDetectedNoteWithinExpectedRange.info(withInExpectedTargetDistance);
+    log_GPVisionDetectedGamepieceWithinExpectedRange.info(withInExpectedTargetDistance);
 
     Pose2d flippedPose = AllianceFlipUtil.flipPoseForAlliance(robotPose);
     Translation2d flippedGamepieceTranslation =

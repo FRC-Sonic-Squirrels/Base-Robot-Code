@@ -42,7 +42,7 @@ public class AutoSubstateMachineChoreo extends AutoSubstateMachine {
   }
 
   private StateHandler initFollowPathToGamePiece() {
-    super.intakeCommand = new IntakeGamepiece(intake, endEffector, shooter, arm, elevator);
+    super.intakeCommand = new IntakeGamepiece();
     super.intakeCommand.schedule();
 
     if (trajToGamepiece != null) {
@@ -71,7 +71,8 @@ public class AutoSubstateMachineChoreo extends AutoSubstateMachine {
       return stateWithName("visionPickupGamepiece", super::visionPickupGamepiece);
     }
 
-    if (endEffector.noteInEndEffector()) {
+    // TODO: change to if gamepiece is possessed
+    if (false) {
       drive.resetVelocityOverride();
       return stateWithName("prepFollowPathToShooting", super::prepFollowPathToShooting);
     }

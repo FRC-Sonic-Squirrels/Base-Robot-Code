@@ -1,8 +1,6 @@
 package frc.robot.subsystems.elevator;
 
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import com.revrobotics.CANSparkBase.IdleMode;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.Distance;
 import edu.wpi.first.units.Measure;
@@ -17,8 +15,6 @@ public interface ElevatorIO {
     public double appliedVolts = 0.0;
     public double currentAmps = 0.0;
     public double tempCelsius = 0.0;
-    public double reactionArmRotations = 0.0;
-    public double reactionArmVoltage = 0.0;
 
     public Inputs(LoggerGroup logInputs) {
       super(logInputs);
@@ -39,14 +35,4 @@ public interface ElevatorIO {
   public default boolean setNeutralMode(NeutralModeValue value) {
     return false;
   }
-
-  public default void setRightServoAngle(Rotation2d angle) {}
-
-  public default void setLeftServoAngle(Rotation2d angle) {}
-
-  public default void setReactionArmPosition(double rotations) {}
-
-  public default void resetReactionArmPosition() {}
-
-  public default void setReactionArmIdleMode(IdleMode idleMode) {}
 }

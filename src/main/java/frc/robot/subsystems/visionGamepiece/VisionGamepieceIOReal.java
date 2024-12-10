@@ -51,7 +51,6 @@ public class VisionGamepieceIOReal implements VisionGamepieceIO {
     inputs.timestamp = timestamp;
 
     var aprilTagYaw = 0.0;
-    var seesStageTags = false;
     for (int i = 0; i < results.getTargets().size(); i++) {
       PhotonTrackedTarget target = results.targets.get(i);
       if ((DriverStation.getAlliance().get().equals(Alliance.Red)
@@ -59,12 +58,10 @@ public class VisionGamepieceIOReal implements VisionGamepieceIO {
           || (DriverStation.getAlliance().get().equals(Alliance.Blue)
               && (target.getFiducialId() >= 14 && target.getFiducialId() <= 16))) {
         aprilTagYaw = target.getYaw();
-        seesStageTags = true;
       }
     }
 
     inputs.aprilTagYaw = aprilTagYaw;
-    inputs.seesStageTags = seesStageTags;
   }
 
   @Override

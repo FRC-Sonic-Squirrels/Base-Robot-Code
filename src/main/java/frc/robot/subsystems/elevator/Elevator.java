@@ -5,13 +5,10 @@
 package frc.robot.subsystems.elevator;
 
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import com.revrobotics.CANSparkBase.IdleMode;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.Distance;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Units;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.lib.team2930.ExecutionTiming;
 import frc.lib.team2930.LoggerEntry;
@@ -20,7 +17,6 @@ import frc.lib.team2930.TunableNumberGroup;
 import frc.lib.team6328.LoggedTunableNumber;
 import frc.robot.Constants;
 import frc.robot.Constants.RobotMode.RobotType;
-import frc.robot.commands.mechanism.elevator.ReactionArmsSetAngle;
 
 public class Elevator extends SubsystemBase {
   public static final String ROOT_TABLE = "Elevator";
@@ -38,10 +34,6 @@ public class Elevator extends SubsystemBase {
       logInputs.buildDecimal("CurrentAmps");
   private static final LoggerEntry.Decimal logInputs_tempCelsius =
       logInputs.buildDecimal("TempCelsius");
-  private static final LoggerEntry.Decimal logInputs_reactionArmRotations =
-      logInputs.buildDecimal("ReactionArmRotations");
-  private static final LoggerEntry.Decimal logInputs_reactionArmVoltage =
-      logInputs.buildDecimal("ReactionArmVoltage");
 
   private static final LoggerGroup logGroup = LoggerGroup.build(ROOT_TABLE);
   private static final LoggerEntry.Decimal logTargetHeight = logGroup.buildDecimal("targetHeight");
@@ -76,7 +68,7 @@ public class Elevator extends SubsystemBase {
       closedLoopMaxAccelerationConstraint.initDefault(640.0);
       motionMagicDefaultConstraints = new Constraints(640.0, 640.0);
 
-    } else if (Constants.RobotMode.getRobot() == RobotType.ROBOT_2024_MAESTRO) {
+    } else if (Constants.RobotMode.getRobot() == RobotType.ROBOT_COMPETITION) {
       kP.initDefault(12.0);
       kD.initDefault(0.0);
       kG.initDefault(0.0);
@@ -89,10 +81,6 @@ public class Elevator extends SubsystemBase {
       motionMagicDefaultConstraints = new Constraints(640.0, 640.0);
     }
   }
-
-  private double lastServoActivationTime = 0.0;
-  private boolean rightServoActive = false;
-  private Rotation2d targetServoAngle = Constants.zeroRotation2d;
 
   private final ElevatorIO io;
   private final ElevatorIO.Inputs inputs = new ElevatorIO.Inputs(logInputs);
@@ -119,8 +107,6 @@ public class Elevator extends SubsystemBase {
       logInputs_appliedVolts.info(inputs.appliedVolts);
       logInputs_currentAmps.info(inputs.currentAmps);
       logInputs_tempCelsius.info(inputs.tempCelsius);
-      logInputs_reactionArmRotations.info(inputs.reactionArmRotations);
-      logInputs_reactionArmVoltage.info(inputs.reactionArmVoltage);
 
       logTargetHeight.info(targetHeight.in(Units.Inches));
 
@@ -199,41 +185,5 @@ public class Elevator extends SubsystemBase {
 
   public Constraints getCurrentMotionMagicConstraints() {
     return currentMotionMagicConstraints;
-  }
-
-  // REACTION ARM
-  public void deployReactionArms() {
-    io.setReactionArmPosition(
-        Constants.ElevatorConstants.ReactionArmConstants.REACTION_ARM_DEPLOY_ROTATIONS);
-  }
-
-  public void reactionArmsAmp() {
-    io.setReactionArmPosition(
-        Constants.ElevatorConstants.ReactionArmConstants.REACTION_ARM_AMP_ROTATIONS);
-  }
-
-  public void retractReactionArms() {
-    io.setReactionArmPosition(
-        Constants.ElevatorConstants.ReactionArmConstants.REACTION_ARM_HOME_ROTATIONS);
-  }
-
-  public void resetReactionArmPositions() {
-    io.resetReactionArmPosition();
-  }
-
-  public void setReactionArmsAngle(double rotations) {
-    io.setReactionArmPosition(rotations);
-  }
-
-  public double getReationsArmsRotations() {
-    return inputs.reactionArmRotations;
-  }
-
-  public void setReactionArmIdleMode(IdleMode idleMode) {
-    io.setReactionArmIdleMode(idleMode);
-  }
-
-  public Command setReactionArmsRotationsCMD(double rotations) {
-    return new ReactionArmsSetAngle(this, rotations);
   }
 }

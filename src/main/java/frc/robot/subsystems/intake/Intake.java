@@ -37,7 +37,7 @@ public class Intake extends SubsystemBase {
       group.build("ClosedLoopMaxAccelerationConstraint");
 
   static {
-    if (Constants.RobotMode.getRobot() == RobotType.ROBOT_2024_MAESTRO) {
+    if (Constants.RobotMode.getRobot() == RobotType.ROBOT_COMPETITION) {
       kP.initDefault(0.8);
       kV.initDefault(0.15);
       maxProfiledAcceleration.initDefault(300.0);

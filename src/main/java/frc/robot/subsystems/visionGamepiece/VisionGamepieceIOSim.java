@@ -62,7 +62,6 @@ public class VisionGamepieceIOSim implements VisionGamepieceIO {
     var results = camera.getLatestResult();
 
     var aprilTagYaw = 0.0;
-    var seesStageTags = false;
     for (int i = 0; i < results.getTargets().size(); i++) {
       PhotonTrackedTarget target = results.targets.get(i);
       int targetID = target.getFiducialId();
@@ -80,12 +79,10 @@ public class VisionGamepieceIOSim implements VisionGamepieceIO {
 
         if (condition1 || condition2) {
           aprilTagYaw = target.getYaw();
-          seesStageTags = true;
         }
       }
     }
 
     inputs.aprilTagYaw = aprilTagYaw;
-    inputs.seesStageTags = seesStageTags;
   }
 }

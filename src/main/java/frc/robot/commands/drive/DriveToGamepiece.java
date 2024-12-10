@@ -71,7 +71,7 @@ public class DriveToGamepiece extends Command {
   // Called once the command ends or is interrupted.
   @Override
   public void end(boolean interrupted) {
-    led.setBaseRobotState(BaseRobotState.NOTE_STATUS);
+    led.setBaseRobotState(BaseRobotState.GAMEPIECE_STATUS);
     wrapper.resetVelocityOverride();
   }
 

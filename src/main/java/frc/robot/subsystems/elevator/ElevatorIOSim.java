@@ -13,7 +13,7 @@ import frc.robot.Constants;
 public class ElevatorIOSim implements ElevatorIO {
   private final ElevatorSim sim =
       new ElevatorSim(
-          DCMotor.getFalcon500Foc(1),
+          DCMotor.getKrakenX60Foc(2),
           Constants.ElevatorConstants.GEAR_RATIO,
           Constants.ElevatorConstants.CARRIAGE_MASS,
           Units.Inches.of(Constants.ElevatorConstants.PULLEY_DIAMETER).in(Units.Meters) / 2,

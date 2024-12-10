@@ -289,10 +289,7 @@ public class VisionGamepiece extends SubsystemBase {
     logFudgeFromPitch.info(fudgeFromPitch);
 
     return (Constants.VisionGamepieceConstants.GAMEPIECE_CAMERA_POSE.getZ()
-                - (Constants.FieldConstants.Gamepieces.NOTE_OUTER_RADIUS
-                        .minus(Constants.FieldConstants.Gamepieces.NOTE_INNER_RADIUS)
-                        .in(Units.Meters))
-                    / 2)
+                - Constants.FieldConstants.Gamepieces.GAMEPIECE_HEIGHT.in(Units.Inch))
             * Math.tan(targetPitch.getRadians())
         + Units.Inches.of(fudgeFromYaw).in(Units.Meter)
         + Units.Inches.of(fudgeFromPitch).in(Units.Meter);
@@ -348,9 +345,5 @@ public class VisionGamepiece extends SubsystemBase {
 
   public double getTagYaw() {
     return inputs.aprilTagYaw;
-  }
-
-  public boolean seesStageTags() {
-    return inputs.seesStageTags;
   }
 }

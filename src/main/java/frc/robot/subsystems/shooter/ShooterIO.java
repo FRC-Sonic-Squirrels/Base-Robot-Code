@@ -14,18 +14,12 @@ public interface ShooterIO {
     public double pivotAppliedVolts = 0.0;
     public double pivotCurrentAmps = 0.0;
 
-    public double[] launcherRPM = new double[2];
-    public double[] launcherAppliedVolts = new double[2];
-    public double[] launcherCurrentAmps = new double[2];
+    public double launcherRPM = 0.0;
+    public double launcherAppliedVolts = 0.0;
+    public double launcherCurrentAmps = 0.0;
 
-    public double kickerAppliedVolts = 0.0;
-    public double kickerCurrentAmps = 0.0;
-    public double kickerVelocityRPM = 0.0;
-
-    // launcher lead, launcher follower, pivot, kicker
-    public double[] tempsCelcius = new double[4];
-
-    public double timeOfFlightDistance = 18.0;
+    // launcher, pivot
+    public double[] tempsCelcius = new double[2];
 
     public Inputs(LoggerGroup logInputs) {
       super(logInputs);
@@ -52,24 +46,12 @@ public interface ShooterIO {
   // LAUNCHER
   public default void setLauncherVoltage(double volts) {}
 
-  public default void setLauncherRPM(double topRollerRPM, double bottomRollerRPM) {}
+  public default void setLauncherRPM(double rollerRPM) {}
 
   public default void setLauncherClosedLoopConstants(
       double kP, double kV, double kS, double maxProfiledAcceleration) {}
 
-  // KICKER
-  public default void setKickerVoltage(double volts) {}
-
   public default boolean setNeutralMode(NeutralModeValue value) {
     return false;
   }
-
-  public default void markStartOfNoteLoading() {}
-
-  public default void markStartOfNoteShooting() {}
-
-  public default void setKickerClosedLoopConstants(
-      double kP, double kV, double kS, double maxProfiledAcceleration) {}
-
-  public default void setKickerVelocity(double revPerMin) {}
 }
