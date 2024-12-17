@@ -36,7 +36,7 @@ public class LED extends SubsystemBase {
       new AddressableLEDBuffer(13); // TODO: change length of buffers to new robot's led size
   private AddressableLEDBuffer previousBuffer = new AddressableLEDBuffer(13);
 
-  private int snakeShade = 0;
+
   private int rainbowFirstPixelHue = 0;
   private int levelMeterCount = 0;
   private RobotState robotState = RobotState.BASE;
@@ -67,7 +67,7 @@ public class LED extends SubsystemBase {
 
     if (useTunableLEDs.get() == 0) {
       // This method will be called once per scheduler run
-      // TODO: add condition for if robot is not zeroed.
+      // TODO: add condition for if elevator is not zeroed.
       switch (robotState) {
         case BASE:
           switch (baseRobotState) {
@@ -75,7 +75,7 @@ public class LED extends SubsystemBase {
               if (robotLoops < robotLoopsTillReady) {
                 setProgressBar(Color.kGreen, (double) robotLoops / (double) robotLoopsTillReady);
               } else if (!brakeMode.get()) {
-                setSnake2(Color.kGreen, Color.kCrimson);
+                setSnake(Color.kGreen, Color.kCrimson);
               } else if (!gyroConnected.get() && !Constants.RobotMode.isSimBot()) {
                 setBlinking(Color.kAquamarine, Color.kRed);
               } else {
@@ -87,7 +87,7 @@ public class LED extends SubsystemBase {
                   } else if (DriverStation.isAutonomous()) {
                     setAudioLevelMeter(100);
                   } else {
-                    setSnake2(squirrelOrange, new Color(1, 0.3, 0));
+                    setSnake(squirrelOrange, new Color(1, 0.3, 0));
                   }
                 }
               }
@@ -139,9 +139,12 @@ public class LED extends SubsystemBase {
         case BRAKE_MODE_FAILED:
           setSolidColor(Color.kPurple);
           break;
+        case NOT_ZEROED:
+          setRainbow();
+          break;
       }
     } else {
-      setSnake2(new Color(tunableR.get(), tunableG.get(), tunableB.get()), Color.kRed);
+      setSnake(new Color(tunableR.get(), tunableG.get(), tunableB.get()), Color.kRed);
     }
 
     log_robotState.info(robotState);
@@ -190,21 +193,8 @@ public class LED extends SubsystemBase {
     }
   }
 
+
   private void setSnake(Color color1, Color color2) {
-    for (int i = 0; i < ledBuffer.getLength(); i++) {
-      final var shade = (snakeShade + (i * 255 / ledBuffer.getLength())) % 255;
-      ledBuffer.setRGB(
-          i,
-          (int) (shade * color1.red + color2.red * (255 - shade)),
-          (int) (shade * color1.green + color2.green * (255 - shade)),
-          (int) (shade * color1.blue + color2.blue * (255 - shade)));
-
-      snakeShade += 0.5;
-      snakeShade %= 255;
-    }
-  }
-
-  private void setSnake2(Color color1, Color color2) {
     for (int i = 0; i < ledBuffer.getLength(); i++) {
       final var shade = Math.sin(Timer.getFPGATimestamp() * 4 - i * 0.32);
       ledBuffer.setRGB(
@@ -264,9 +254,7 @@ public class LED extends SubsystemBase {
     // System.out.println("LED: count=" + levelMeterCount + " vol=" + volume + " theta=" + theta);
   }
 
-  private void setNothing() {
-    setSolidColor(Color.kBlack);
-  }
+
 
   public RobotState getCurrentState() {
     return robotState;
@@ -297,7 +285,8 @@ public class LED extends SubsystemBase {
     BREAK_MODE_ON,
     BASE,
     INTAKE_SUCCESS,
-    BRAKE_MODE_FAILED
+    BRAKE_MODE_FAILED,
+    NOT_ZEROED
   }
 
   public enum BaseRobotState {
