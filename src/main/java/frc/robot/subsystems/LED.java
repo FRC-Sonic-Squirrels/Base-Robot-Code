@@ -21,16 +21,20 @@ public class LED extends SubsystemBase {
   private static final String ROOT_TABLE = "LED";
 
   private static final LoggerGroup logGroup = LoggerGroup.build(ROOT_TABLE);
-  private static final LoggerEntry.EnumValue<RobotState> log_robotState = logGroup.buildEnum("robotState");
-  private static final LoggerEntry.EnumValue<BaseRobotState> log_baseRobotState = logGroup.buildEnum("baseRobotState");
-  private static final LoggerEntry.Bool log_gamepieceInRobot = logGroup.buildBoolean("gamepieceInRobot");
+  private static final LoggerEntry.EnumValue<RobotState> log_robotState =
+      logGroup.buildEnum("robotState");
+  private static final LoggerEntry.EnumValue<BaseRobotState> log_baseRobotState =
+      logGroup.buildEnum("baseRobotState");
+  private static final LoggerEntry.Bool log_gamepieceInRobot =
+      logGroup.buildBoolean("gamepieceInRobot");
   private static final LoggerEntry.Bool log_isTeleop = logGroup.buildBoolean("isTeleop");
 
   /** Creates a new LED. */
   private AddressableLED led = new AddressableLED(Constants.LEDConstants.PWM_PORT);
 
-  private AddressableLEDBuffer ledBuffer = new AddressableLEDBuffer(13); // TODO: change length of buffers to new
-                                                                         // robot's led size
+  private AddressableLEDBuffer ledBuffer =
+      new AddressableLEDBuffer(13); // TODO: change length of buffers to new
+  // robot's led size
   private AddressableLEDBuffer previousBuffer = new AddressableLEDBuffer(13);
 
   private int rainbowFirstPixelHue = 0;
@@ -148,8 +152,7 @@ public class LED extends SubsystemBase {
     log_gamepieceInRobot.info(gamepieceInRobot);
     log_isTeleop.info(DriverStation.isTeleop());
 
-    if (!sameAsPrevBuffer())
-      led.setData(ledBuffer);
+    if (!sameAsPrevBuffer()) led.setData(ledBuffer);
 
     ledBuffer.forEach(
         (i, r, g, b) -> {
@@ -224,11 +227,13 @@ public class LED extends SubsystemBase {
 
     int max = ledBuffer.getLength();
     double theta = levelMeterCount * 0.02 * Math.PI * bpm / 60.0;
-    int volume = (int) Math.round(
-        1
-            + Math.abs(11.0 * Math.sin(theta))
-            + (3.0 * Math.sin(theta * 7.0))
-            + (1.0 * Math.sin(theta * 17.0)));
+    int volume =
+        (int)
+            Math.round(
+                1
+                    + Math.abs(11.0 * Math.sin(theta))
+                    + (3.0 * Math.sin(theta * 7.0))
+                    + (1.0 * Math.sin(theta * 17.0)));
 
     for (int i = 0; i < ledBuffer.getLength(); i++) {
       if (i <= volume) {
@@ -293,8 +298,7 @@ public class LED extends SubsystemBase {
 
   public boolean sameAsPrevBuffer() {
     for (int i = 0; i < ledBuffer.getLength(); i++) {
-      if (!ledBuffer.getLED(i).equals(previousBuffer.getLED(i)))
-        return false;
+      if (!ledBuffer.getLED(i).equals(previousBuffer.getLED(i))) return false;
     }
 
     return true;
