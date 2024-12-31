@@ -2,16 +2,13 @@ package frc.robot.subsystems.visionGamepiece;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.units.Units;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import frc.robot.Constants;
+import frc.robot.Constants.VisionGamepieceConstants;
 import frc.robot.configs.RobotConfig;
 import java.util.function.Supplier;
-import org.littletonrobotics.junction.Logger;
 import org.photonvision.PhotonCamera;
 import org.photonvision.simulation.PhotonCameraSim;
 import org.photonvision.simulation.SimCameraProperties;
@@ -26,16 +23,22 @@ public class VisionGamepieceIOSim implements VisionGamepieceIO {
 
   private final Supplier<Pose2d> poseSupplier;
 
+  /** Designed for simulated april tag detection of gamepiece camera */
   public VisionGamepieceIOSim(RobotConfig config, Supplier<Pose2d> poseSupplier) {
 
     this.poseSupplier = poseSupplier;
     var cameraProp = new SimCameraProperties();
     // FIXME: get these values for the cameras we use
-    cameraProp.setCalibration(960, 720, Rotation2d.fromDegrees(128.2));
-    cameraProp.setCalibError(0.35, 0.10);
-    cameraProp.setFPS(15);
-    cameraProp.setAvgLatencyMs(25);
-    cameraProp.setLatencyStdDevMs(10);
+    cameraProp.setCalibration(
+        VisionGamepieceConstants.RESOLUTION_WIDTH_PIXELS,
+        VisionGamepieceConstants.RESOLUTION_HEIGHT_PIXELS,
+        VisionGamepieceConstants.FOV_DIAGONAL);
+    cameraProp.setCalibError(
+        VisionGamepieceConstants.AVERAGE_ERROR_PIXELS,
+        VisionGamepieceConstants.AVERAGE_STANDARD_DEVIATION_PIXELS);
+    cameraProp.setFPS(VisionGamepieceConstants.FPS);
+    cameraProp.setAvgLatencyMs(VisionGamepieceConstants.AVERAGE_LATENCY_MS);
+    cameraProp.setLatencyStdDevMs(VisionGamepieceConstants.AVERAGE_STANDARD_DEVIATION_MS);
 
     var networkName = "gamepieceCameraSim";
     this.camera = new PhotonCamera(networkName);
@@ -62,25 +65,11 @@ public class VisionGamepieceIOSim implements VisionGamepieceIO {
     var results = camera.getLatestResult();
 
     var aprilTagYaw = 0.0;
-    for (int i = 0; i < results.getTargets().size(); i++) {
+    for (int i = 0;
+        i < results.getTargets().size();
+        i++) { // TODO: Add logic for which tags to detect
       PhotonTrackedTarget target = results.targets.get(i);
-      int targetID = target.getFiducialId();
-      if (DriverStation.getAlliance().isPresent()) {
-        boolean isRed = DriverStation.getAlliance().get().equals(Alliance.Red);
-        boolean isBlue = DriverStation.getAlliance().get().equals(Alliance.Blue);
-        boolean condition1 = (isRed && (targetID >= 11 && targetID <= 13));
-        boolean condition2 = (isBlue && (targetID >= 14 && targetID <= 16));
-
-        Logger.recordOutput("VisionGamepiece/isBlue", isBlue);
-        Logger.recordOutput("VisionGamepiece/isRed", isRed);
-
-        Logger.recordOutput("VisionGamepiece/condition1", condition1);
-        Logger.recordOutput("VisionGamepiece/condition2", condition2);
-
-        if (condition1 || condition2) {
-          aprilTagYaw = target.getYaw();
-        }
-      }
+      aprilTagYaw = target.getYaw();
     }
 
     inputs.aprilTagYaw = aprilTagYaw;

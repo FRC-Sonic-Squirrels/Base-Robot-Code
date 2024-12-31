@@ -10,11 +10,11 @@ import frc.robot.subsystems.BaseInputs;
 public interface ElevatorIO {
   /** Contains all of the input data received from hardware. */
   class Inputs extends BaseInputs {
-    public double heightInches = 0.0;
-    public double velocityInchesPerSecond = 0.0;
-    public double appliedVolts = 0.0;
-    public double currentAmps = 0.0;
-    public double tempCelsius = 0.0;
+    public double heightInches;
+    public double velocityInchesPerSecond;
+    public double appliedVolts;
+    public double currentAmps;
+    public double tempCelsius;
 
     public Inputs(LoggerGroup logInputs) {
       super(logInputs);

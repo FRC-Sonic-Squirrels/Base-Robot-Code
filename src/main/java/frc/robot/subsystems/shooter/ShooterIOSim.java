@@ -23,13 +23,13 @@ public class ShooterIOSim implements ShooterIO {
       new TalonFXArmSim(
           new SingleJointedArmSim(
               DCMotor.getFalcon500Foc(1),
-              ShooterConstants.Pivot.GEARING,
+              ShooterConstants.PivotConstants.GEARING,
               SingleJointedArmSim.estimateMOI(Units.Feet.of(1.5).in(Units.Meters), 20.0),
               ShooterConstants.SHOOTER_LENGTH.in(Units.Meters),
-              ShooterConstants.Pivot.MIN_ANGLE_RAD.getRadians(),
-              ShooterConstants.Pivot.MAX_ANGLE_RAD.getRadians(),
+              ShooterConstants.PivotConstants.MIN_ANGLE_RAD.getRadians(),
+              ShooterConstants.PivotConstants.MAX_ANGLE_RAD.getRadians(),
               false,
-              ShooterConstants.Pivot.SIM_INITIAL_ANGLE));
+              ShooterConstants.PivotConstants.SIM_INITIAL_ANGLE));
 
   private VoltageOut pivotOpenLoopControl = new VoltageOut(0);
   private MotionMagicVoltage pivotClosedLoopControl = new MotionMagicVoltage(0);
@@ -39,8 +39,8 @@ public class ShooterIOSim implements ShooterIO {
   private final TalonFXSim launcher =
       new TalonFXSim(
           DCMotor.getFalcon500Foc(2),
-          ShooterConstants.Launcher.GEARING,
-          ShooterConstants.Launcher.MOI);
+          ShooterConstants.LauncherConstants.GEARING,
+          ShooterConstants.LauncherConstants.MOI);
 
   private VoltageOut launcherOpenLoopControl = new VoltageOut(0);
   private VelocityVoltage launcherClosedLoopControl = new VelocityVoltage(0);
@@ -57,7 +57,7 @@ public class ShooterIOSim implements ShooterIO {
     // Pivot inputs
 
     inputs.pivotAppliedVolts = pivot.getVoltage();
-    inputs.pivotVelocityRadsPerSec = pivot.getVelocity().in(Units.RadiansPerSecond);
+    inputs.pivotVelocityDegreesPerSec = pivot.getVelocity().in(Units.DegreesPerSecond);
     inputs.pivotPosition = new Rotation2d(pivot.getPosition());
 
     // Launcher inputs

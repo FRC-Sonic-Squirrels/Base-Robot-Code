@@ -37,7 +37,7 @@ public class ArmIOSim implements ArmIO {
 
     inputs.armPosition = new Rotation2d(armSim.getPosition().in(Units.Radian));
     inputs.armAppliedVolts = armSim.getVoltage();
-    inputs.armVelocityRPM = armSim.getVelocity().in(Units.RPM);
+    inputs.armVelocityDegreesPerSecond = armSim.getVelocity().in(Units.DegreesPerSecond);
   }
 
   @Override
@@ -53,17 +53,13 @@ public class ArmIOSim implements ArmIO {
 
   @Override
   public void setClosedLoopConstants(
-      double kP, double kD, double kG, double maxProfiledVelocity, double maxProfiledAcceleration) {
+      double kP, double kD, double kG, MotionMagicConfigs mmConfigs) {
     TalonFXConfiguration config = new TalonFXConfiguration();
     Slot0Configs slot0Configs = new Slot0Configs();
-    MotionMagicConfigs mmConfigs = new MotionMagicConfigs();
 
     slot0Configs.kP = kP;
     slot0Configs.kD = kD;
     slot0Configs.kG = kG;
-
-    mmConfigs.MotionMagicCruiseVelocity = maxProfiledVelocity;
-    mmConfigs.MotionMagicAcceleration = maxProfiledAcceleration;
 
     config.Slot0 = slot0Configs;
     config.MotionMagic = mmConfigs;

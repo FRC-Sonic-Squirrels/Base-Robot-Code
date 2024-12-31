@@ -3,15 +3,15 @@ package frc.robot.subsystems.visionGamepiece;
 public interface VisionGamepieceIO {
 
   public static class Inputs {
-    public boolean isConnected = false;
-    public boolean validTarget = false;
-    public double totalLatencyMs = 0;
-    public double timestamp = 0.0;
+    public boolean isConnected;
+    public boolean validTarget;
+    public double totalLatencyMs;
+    public double timestamp;
     public double[] pitch = new double[] {};
     public double[] yaw = new double[] {};
     public double[] area = new double[] {};
-    public int targetCount = 0;
-    public double aprilTagYaw = 0.0;
+    public int targetCount;
+    public double aprilTagYaw;
     public int pipelineIndex;
   }
 

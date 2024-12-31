@@ -160,6 +160,8 @@ public class LED extends SubsystemBase {
         });
   }
 
+  // Setters
+
   private void setSolidColor(Color color) {
     for (int i = 0; i < ledBuffer.getLength(); i++) {
       ledBuffer.setLED(i, color);
@@ -254,24 +256,34 @@ public class LED extends SubsystemBase {
     // theta=" + theta);
   }
 
-  public RobotState getCurrentState() {
-    return robotState;
-  }
-
   public void setBaseRobotState(BaseRobotState baseRobotState) {
     this.baseRobotState = baseRobotState;
-  }
-
-  public BaseRobotState getCurrentBaseState() {
-    return baseRobotState;
   }
 
   public void setGamepieceStatus(boolean gamepieceInRobot) {
     this.gamepieceInRobot = gamepieceInRobot;
   }
 
+  // Getters
+
+  public RobotState getCurrentState() {
+    return robotState;
+  }
+
+  public BaseRobotState getCurrentBaseState() {
+    return baseRobotState;
+  }
+
   public boolean getGamepieceStatus() {
     return gamepieceInRobot;
+  }
+
+  public boolean sameAsPrevBuffer() {
+    for (int i = 0; i < ledBuffer.getLength(); i++) {
+      if (!ledBuffer.getLED(i).equals(previousBuffer.getLED(i))) return false;
+    }
+
+    return true;
   }
 
   public enum RobotState {
@@ -294,13 +306,5 @@ public class LED extends SubsystemBase {
     GOAL_LINE_UP,
     SHOOTING_PREP,
     SHOOTER_SUCCESS
-  }
-
-  public boolean sameAsPrevBuffer() {
-    for (int i = 0; i < ledBuffer.getLength(); i++) {
-      if (!ledBuffer.getLED(i).equals(previousBuffer.getLED(i))) return false;
-    }
-
-    return true;
   }
 }

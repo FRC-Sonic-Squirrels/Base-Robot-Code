@@ -20,11 +20,9 @@ import frc.robot.subsystems.swerve.SwerveModuleIOTalonFX;
 import frc.robot.subsystems.swerve.SwerveModules;
 import frc.robot.subsystems.vision.VisionModuleConfiguration;
 
-public class RobotConfig2024 extends RobotConfig {
+public class RobotConfig2024Maestro extends RobotConfig {
 
   private static final boolean PHOENIX_PRO_LICENSE = true;
-
-  // TODO: ----- !IMPORTANT! FILL IN ALL VALUES !IMPORTANT! -----
 
   // ------------ SWERVE ---------------------
   private static final Measure<Distance> WHEEL_RADIUS = Units.Inches.of(1.957);

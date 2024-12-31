@@ -6,24 +6,17 @@ package frc.robot.commands.elevator;
 
 import edu.wpi.first.units.Distance;
 import edu.wpi.first.units.Measure;
-import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.lib.team2930.LoggerEntry;
-import frc.lib.team2930.LoggerGroup;
 import frc.robot.subsystems.elevator.Elevator;
 import java.util.function.Supplier;
 
 public class ElevatorSetHeight extends Command {
-  private static final String ROOT_TABLE = "ElevatorSetHeight";
 
-  private static final LoggerGroup logGroup = LoggerGroup.build(ROOT_TABLE);
-  private static final LoggerEntry.Decimal log_targetHeight = logGroup.buildDecimal("targetHeight");
-
-  /** Creates a new ElevatorSetHeight. */
   private final Elevator elevator;
 
   private final Supplier<Measure<Distance>> heightSupplier;
 
+  /** Creates a new ElevatorSetHeight. */
   public ElevatorSetHeight(Elevator elevator, Supplier<Measure<Distance>> heightSupplier) {
     this.elevator = elevator;
     this.heightSupplier = heightSupplier;
@@ -43,7 +36,6 @@ public class ElevatorSetHeight extends Command {
   @Override
   public void execute() {
     elevator.setHeight(heightSupplier.get());
-    log_targetHeight.info(heightSupplier.get().in(Units.Inches));
   }
 
   // Called once the command ends or is interrupted.

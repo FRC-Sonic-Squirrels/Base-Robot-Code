@@ -18,7 +18,7 @@ import frc.robot.Constants;
 public class TalonFXElevatorSim {
 
   private final ElevatorSim sim;
-  private ControlMode controlMode;
+  private ControlMode controlMode = ControlMode.VOLTAGE;
 
   private double targetVoltage;
   private double targetHeight;

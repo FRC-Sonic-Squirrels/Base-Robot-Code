@@ -1,8 +1,6 @@
 package frc.robot.subsystems.visionGamepiece;
 
 import com.ctre.phoenix6.Utils;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Timer;
 import frc.robot.Constants;
 import java.util.List;
@@ -50,15 +48,14 @@ public class VisionGamepieceIOReal implements VisionGamepieceIO {
 
     inputs.timestamp = timestamp;
 
+    // April tag code (for if gamepiece camera is to be used for april tag detection)
+
     var aprilTagYaw = 0.0;
-    for (int i = 0; i < results.getTargets().size(); i++) {
+    for (int i = 0;
+        i < results.getTargets().size();
+        i++) { // TODO: implement logic for what april tags to detect if necessary
       PhotonTrackedTarget target = results.targets.get(i);
-      if ((DriverStation.getAlliance().get().equals(Alliance.Red)
-              && (target.getFiducialId() >= 11 && target.getFiducialId() <= 13))
-          || (DriverStation.getAlliance().get().equals(Alliance.Blue)
-              && (target.getFiducialId() >= 14 && target.getFiducialId() <= 16))) {
-        aprilTagYaw = target.getYaw();
-      }
+      aprilTagYaw = target.getYaw();
     }
 
     inputs.aprilTagYaw = aprilTagYaw;

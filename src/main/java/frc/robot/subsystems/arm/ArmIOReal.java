@@ -14,7 +14,10 @@ import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.units.Units;
 import frc.robot.Constants;
+import frc.robot.Constants.ArmConstants;
+import frc.robot.Constants.MotorConstants.KrakenConstants;
 
 public class ArmIOReal implements ArmIO {
   private final StatusSignal<Double> appliedVols;
@@ -23,22 +26,20 @@ public class ArmIOReal implements ArmIO {
   private final StatusSignal<Double> tempCelsius;
   private final StatusSignal<Double> velocity;
 
-  // FIXME: add FOC
   private final MotionMagicVoltage closedLoopControl =
       new MotionMagicVoltage(0.0).withEnableFOC(true);
   private final VoltageOut openLoopControl = new VoltageOut(0.0).withEnableFOC(true);
 
-  private final TalonFX motor;
+  private final TalonFX motor = new TalonFX(Constants.CanIDs.ARM_CAN_ID);
+  ;
 
   private final BaseStatusSignal[] refreshSet;
 
   public ArmIOReal() {
-    motor = new TalonFX(Constants.CanIDs.ARM_CAN_ID);
-
+    // Motor config
     TalonFXConfiguration config = new TalonFXConfiguration();
 
-    // FIXME: find true current limits
-    config.CurrentLimits.SupplyCurrentLimit = 40;
+    config.CurrentLimits.SupplyCurrentLimit = ArmConstants.SUPPLY_CURRENT_LIMIT;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
 
     config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
@@ -55,16 +56,19 @@ public class ArmIOReal implements ArmIO {
     config.Feedback.SensorToMechanismRatio = Constants.ArmConstants.GEAR_RATIO;
     config.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
 
-    config.Voltage.SupplyVoltageTimeConstant = 0.02;
-    // other closed loop configuration is handled by setClosedLoopConstants()
+    config.Voltage.SupplyVoltageTimeConstant = KrakenConstants.SUPPLY_VOLTAGE_TIME;
 
     motor.getConfigurator().apply(config);
+
+    // Status signals
 
     appliedVols = motor.getMotorVoltage();
     positionRotations = motor.getPosition();
     currentAmps = motor.getStatorCurrent();
     tempCelsius = motor.getDeviceTemp();
     velocity = motor.getVelocity();
+
+    // Update status signals
 
     BaseStatusSignal.setUpdateFrequencyForAll(100, appliedVols, positionRotations, velocity);
     BaseStatusSignal.setUpdateFrequencyForAll(50, currentAmps);
@@ -80,12 +84,12 @@ public class ArmIOReal implements ArmIO {
   public void updateInputs(Inputs inputs) {
     inputs.refreshAll(refreshSet);
 
-    // could look into latency compensating this value
     inputs.armPosition = Rotation2d.fromRotations(positionRotations.getValueAsDouble());
     inputs.armAppliedVolts = appliedVols.getValueAsDouble();
     inputs.armCurrentAmps = currentAmps.getValueAsDouble();
     inputs.armTempCelsius = tempCelsius.getValueAsDouble();
-    inputs.armVelocityRPM = velocity.getValueAsDouble();
+    inputs.armVelocityDegreesPerSecond =
+        Units.RotationsPerSecond.of(velocity.getValueAsDouble()).in(Units.DegreesPerSecond);
   }
 
   @Override
@@ -96,22 +100,18 @@ public class ArmIOReal implements ArmIO {
 
   @Override
   public void setClosedLoopConstants(
-      double kP, double kD, double kG, double maxProfiledVelocity, double maxProfiledAcceleration) {
-    var pidConfig = new Slot0Configs();
-    MotionMagicConfigs mmConfig = new MotionMagicConfigs();
+      double kP, double kD, double kG, MotionMagicConfigs mmConfigs) {
+    var slot0Configs = new Slot0Configs();
 
-    motor.getConfigurator().refresh(pidConfig);
-    motor.getConfigurator().refresh(mmConfig);
+    motor.getConfigurator().refresh(slot0Configs);
+    motor.getConfigurator().refresh(mmConfigs);
 
-    pidConfig.kP = kP;
-    pidConfig.kD = kD;
-    pidConfig.kG = kG;
+    slot0Configs.kP = kP;
+    slot0Configs.kD = kD;
+    slot0Configs.kG = kG;
 
-    mmConfig.MotionMagicCruiseVelocity = maxProfiledVelocity;
-    mmConfig.MotionMagicAcceleration = maxProfiledAcceleration;
-
-    motor.getConfigurator().apply(pidConfig);
-    motor.getConfigurator().apply(mmConfig);
+    motor.getConfigurator().apply(slot0Configs);
+    motor.getConfigurator().apply(mmConfigs);
   }
 
   @Override

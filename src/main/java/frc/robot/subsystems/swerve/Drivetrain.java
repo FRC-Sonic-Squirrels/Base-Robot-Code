@@ -43,6 +43,8 @@ import java.util.function.Supplier;
 public class Drivetrain extends SubsystemBase {
   public static final String ROOT_TABLE = "Drivetrain";
 
+  // Execution timing
+
   private static final ExecutionTiming timing = new ExecutionTiming(ROOT_TABLE);
   private static final ExecutionTiming timing_wait = new ExecutionTiming(ROOT_TABLE + "/wait");
   private static final ExecutionTiming timing_process =
@@ -53,6 +55,10 @@ public class Drivetrain extends SubsystemBase {
   private static final LoggerGroup logGroupDrive = LoggerGroup.build(ROOT_TABLE);
   private static final LoggerEntry.Decimal logGyro_canivoreBusUtilization =
       logGroupDrive.buildDecimal("canivoreBusUtilization");
+
+  // Logging
+
+  // Gyro logging
 
   private static final LoggerGroup logGyro = logGroupDrive.subgroup("Gyro");
 
@@ -72,6 +78,8 @@ public class Drivetrain extends SubsystemBase {
   private static final LoggerEntry.Decimal logGyro_Acceleration =
       logGyro.buildDecimal("linearAcceleration");
 
+  // Swerve logging
+
   private static final LoggerGroup logGroupSwerveStates = LoggerGroup.build("SwerveStates");
   private static final LoggerEntry.StructArray<SwerveModuleState> logSwerveStatesSetpoints =
       logGroupSwerveStates.buildStructArray(SwerveModuleState.class, "Setpoints");
@@ -80,6 +88,8 @@ public class Drivetrain extends SubsystemBase {
           logGroupSwerveStates.buildStructArray(SwerveModuleState.class, "SetpointsOptimized");
   private static final LoggerEntry.StructArray<SwerveModuleState> logSwerveStatesMeasured =
       logGroupSwerveStates.buildStructArray(SwerveModuleState.class, "Measured");
+
+  // Odometry logging
 
   private static final LoggerGroup logGroupOdometryThread = LoggerGroup.build("OdometryThread");
   private static final LoggerEntry.EnumValue<StatusCode> logOdometryStatus =
@@ -90,6 +100,8 @@ public class Drivetrain extends SubsystemBase {
       logGroupOdometryThread.buildStruct(Twist2d.class, "twist", SwerveModule.ODOMETRY_FREQUENCY);
   private static final LoggerEntry.Text logOdometryCrash =
       logGroupOdometryThread.buildString("crash");
+
+  // Drivetrain logging
 
   private static final LoggerGroup logGroupDrivetrain = LoggerGroup.build("Drivetrain");
   private static final LoggerEntry.Decimal logDrivetrain_leftoverVelocity =
@@ -106,6 +118,7 @@ public class Drivetrain extends SubsystemBase {
   private static final LoggerEntry.Decimal logDrivetrain_speedsRot =
       logGroupDrivetrain.buildDecimal("speedsRot");
 
+  // Robot position logging
   private static final LoggerGroup logGroupLocalization = LoggerGroup.build("Localization");
 
   private static final LoggerEntry.Struct<Pose2d> logLocalization_RobotPosition_RAW_ODOMETRY =
@@ -131,7 +144,9 @@ public class Drivetrain extends SubsystemBase {
 
   public static final AutoLock odometryLock = new AutoLock("odometry", 100);
 
-  public static final TunableNumberGroup group = new TunableNumberGroup("RobotConfig");
+  // Tunable numbers
+
+  public static final TunableNumberGroup group = new TunableNumberGroup("Drivetrain");
   public static final LoggedTunableNumber driveMotorAccelerationAuto =
       group.build("SwerveDRIVEAccelerationAuto", 1000);
   public static final LoggedTunableNumber driveMotorAccelerationTele =
@@ -156,7 +171,6 @@ public class Drivetrain extends SubsystemBase {
   private Pose2d rawOdometryPose = Constants.zeroPose2d;
 
   private final PoseEstimator poseEstimator;
-  private final PoseEstimator poseEstimatorGlobal;
 
   private final Field2d field2d = new Field2d();
   private final Field2d rawOdometryField2d = new Field2d();
@@ -184,13 +198,11 @@ public class Drivetrain extends SubsystemBase {
 
     kinematics = config.getSwerveDriveKinematics();
 
-    int[] tagsTargets = new int[] {3, 4, 5, 6, 7, 8}; // TODO: change to new season's tag numbers
-    int[] tagsGlobal = {
+    int[] tags = {
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16
     }; // TODO: change to new season's tag numbers
 
-    poseEstimator = new PoseEstimator(1.2, 1.2, 0.3, tagsTargets);
-    poseEstimatorGlobal = new PoseEstimator(0.4, 0.4, 0.3, tagsGlobal);
+    poseEstimator = new PoseEstimator(1.2, 1.2, 0.3, tags);
 
     var thread = new Thread(this::runOdometry);
     thread.setName("PhoenixOdometryThread");
@@ -624,10 +636,6 @@ public class Drivetrain extends SubsystemBase {
   /** Returns the maximum angular speed in radians per sec. */
   public double getMaxAngularSpeedRadPerSec() {
     return config.getRobotMaxAngularVelocity();
-  }
-
-  public double[] getCurrentDrawAmps() {
-    return modules.getCurrentDrawAmps();
   }
 
   public boolean isGyroConnected() {

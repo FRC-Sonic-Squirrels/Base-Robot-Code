@@ -26,6 +26,8 @@ public class VisionModule {
 
   public final Alert missingCameraAlert;
 
+  // Logging
+
   public final LoggerEntry.ByteArray log_photonPacketBytes;
   public final LoggerEntry.Decimal log_lastTimestampCTRETime;
   public final LoggerEntry.Bool log_connected;
@@ -70,6 +72,8 @@ public class VisionModule {
     photonPoseEstimator.setMultiTagFallbackStrategy(PoseStrategy.CLOSEST_TO_CAMERA_HEIGHT);
 
     this.missingCameraAlert = new Alert("Missing Camera: " + this.name, Alert.AlertType.ERROR);
+
+    // Logging
 
     logGroup = logGroup.subgroup(name);
 
@@ -119,6 +123,8 @@ public class VisionModule {
     for (int i = 0; i < fieldsToLog.seenTags().length; i++) {
       seenTagsArray[i] = fieldsToLog.seenTags()[i];
     }
+
+    // Logging
 
     log_status.info(status.name());
     log_cameraPose.info(robotPose.transformBy(RobotToCamera));

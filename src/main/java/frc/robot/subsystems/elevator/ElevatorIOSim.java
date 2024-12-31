@@ -21,7 +21,7 @@ public class ElevatorIOSim implements ElevatorIO {
               DCMotor.getKrakenX60Foc(1),
               Constants.ElevatorConstants.GEAR_RATIO,
               Constants.ElevatorConstants.CARRIAGE_MASS,
-              Constants.ElevatorConstants.PULLEY_DIAMETER / 2.0,
+              Constants.ElevatorConstants.PULLEY_DIAMETER.in(Units.Meters) / 2.0,
               0.0,
               Constants.ElevatorConstants.MAX_HEIGHT.in(Units.Meter),
               true,

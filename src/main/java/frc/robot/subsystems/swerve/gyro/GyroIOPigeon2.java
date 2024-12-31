@@ -35,6 +35,7 @@ public class GyroIOPigeon2 implements GyroIO {
   private final BaseStatusSignal[] refreshSet;
 
   public GyroIOPigeon2(RobotConfig config, int canID) {
+    // Pigeon config
     Pigeon2Configuration pigeonConfig = new Pigeon2Configuration();
     pigeonConfig.MountPose.MountPosePitch = config.getGyroMountingPitch();
     pigeonConfig.MountPose.MountPoseRoll = config.getGyroMountingRoll();
@@ -44,13 +45,16 @@ public class GyroIOPigeon2 implements GyroIO {
 
     pigeon.getConfigurator().apply(pigeonConfig);
 
+    // Status signals
+
     yaw = pigeon.getYaw();
-    // FIXME: is this the correct method call
     yawVelocity = pigeon.getAngularVelocityZDevice();
 
     xAcceleration = pigeon.getAccelerationX();
     yAcceleration = pigeon.getAccelerationY();
     zAcceleration = pigeon.getAccelerationZ();
+
+    // Update status signals
 
     pigeon.getConfigurator().apply(new Pigeon2Configuration());
     pigeon.getConfigurator().setYaw(0.0);

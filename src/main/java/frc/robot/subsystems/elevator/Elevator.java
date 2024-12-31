@@ -6,55 +6,56 @@ package frc.robot.subsystems.elevator;
 
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.Distance;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.lib.team2930.ControlMode;
 import frc.lib.team2930.ExecutionTiming;
 import frc.lib.team2930.LoggerEntry;
 import frc.lib.team2930.LoggerGroup;
 import frc.lib.team2930.TunableNumberGroup;
 import frc.lib.team6328.LoggedTunableNumber;
 import frc.robot.Constants;
+import frc.robot.Constants.ElevatorConstants;
 import frc.robot.Constants.RobotMode.RobotType;
 
 public class Elevator extends SubsystemBase {
-  public static final String ROOT_TABLE = "Elevator";
+  // Execution timing
+  private static final ExecutionTiming timing = new ExecutionTiming(ElevatorConstants.ROOT_TABLE);
 
-  private static final ExecutionTiming timing = new ExecutionTiming(ROOT_TABLE);
+  // Logging
 
-  private static final LoggerGroup logInputs = LoggerGroup.build(ROOT_TABLE);
+  private static final LoggerGroup logGroup = LoggerGroup.build(ElevatorConstants.ROOT_TABLE);
   private static final LoggerEntry.Decimal logInputs_heightInches =
-      logInputs.buildDecimal("HeightInches");
+      logGroup.buildDecimal("HeightInches");
   private static final LoggerEntry.Decimal logInputs_velocityInchesPerSecond =
-      logInputs.buildDecimal("VelocityInchesPerSecond");
+      logGroup.buildDecimal("VelocityInchesPerSecond");
   private static final LoggerEntry.Decimal logInputs_appliedVolts =
-      logInputs.buildDecimal("AppliedVolts");
+      logGroup.buildDecimal("AppliedVolts");
   private static final LoggerEntry.Decimal logInputs_currentAmps =
-      logInputs.buildDecimal("CurrentAmps");
+      logGroup.buildDecimal("CurrentAmps");
   private static final LoggerEntry.Decimal logInputs_tempCelsius =
-      logInputs.buildDecimal("TempCelsius");
+      logGroup.buildDecimal("TempCelsius");
 
-  private static final LoggerGroup logGroup = LoggerGroup.build(ROOT_TABLE);
   private static final LoggerEntry.Decimal logTargetHeight = logGroup.buildDecimal("targetHeight");
+  private static final LoggerEntry.EnumValue<ControlMode> logControlMode =
+      logGroup.buildEnum("ControlMode");
 
-  private static final TunableNumberGroup group = new TunableNumberGroup(ROOT_TABLE);
+  // Tunable numbers
+
+  private static final TunableNumberGroup group =
+      new TunableNumberGroup(ElevatorConstants.ROOT_TABLE);
 
   private static final LoggedTunableNumber kP = group.build("kP");
   private static final LoggedTunableNumber kD = group.build("kD");
   private static final LoggedTunableNumber kG = group.build("kG");
 
-  private static final LoggedTunableNumber closedLoopMaxVelocityConstraint =
-      group.build("defaultClosedLoopMaxVelocityConstraint");
-  private static final LoggedTunableNumber closedLoopMaxAccelerationConstraint =
-      group.build("defaultClosedLoopMaxAccelerationConstraint");
+  private static final LoggedTunableNumber maxVelocityConfig = group.build("MaxVelocityConfig");
+  private static final LoggedTunableNumber targetAccelerationConfig =
+      group.build("TargetAccelerationConfig");
 
   private final LoggedTunableNumber tolerance = group.build("toleranceInches", 0.1);
-
-  private static final Constraints motionMagicDefaultConstraints;
-
-  private Constraints currentMotionMagicConstraints = new Constraints(0.0, 0.0);
 
   static {
     if (Constants.RobotMode.getRobot() == RobotType.ROBOT_SIMBOT) {
@@ -62,38 +63,38 @@ public class Elevator extends SubsystemBase {
       kD.initDefault(0.0);
       kG.initDefault(1.84255);
 
-      closedLoopMaxVelocityConstraint.initDefault(640.0);
-      closedLoopMaxAccelerationConstraint.initDefault(640.0);
-      motionMagicDefaultConstraints = new Constraints(640.0, 640.0);
+      maxVelocityConfig.initDefault(640.0);
+      targetAccelerationConfig.initDefault(640.0);
 
-    } else if (Constants.RobotMode.getRobot() == RobotType.ROBOT_COMPETITION) {
-      kP.initDefault(12.0);
+    } else if (Constants.RobotMode.getRobot() == RobotType.ROBOT_2024_RETIRED_MAESTRO) {
+      kP.initDefault(5.0);
       kD.initDefault(0.0);
-      kG.initDefault(0.0);
+      kG.initDefault(0.153);
 
-      closedLoopMaxVelocityConstraint.initDefault(1000.0);
-      closedLoopMaxAccelerationConstraint.initDefault(2000.0);
-
-      motionMagicDefaultConstraints = new Constraints(1000.0, 2000.0);
-    } else {
-      motionMagicDefaultConstraints = new Constraints(640.0, 640.0);
+      maxVelocityConfig.initDefault(1000.0);
+      targetAccelerationConfig.initDefault(2000.0);
     }
   }
 
   private final ElevatorIO io;
-  private final ElevatorIO.Inputs inputs = new ElevatorIO.Inputs(logInputs);
+  private final ElevatorIO.Inputs inputs = new ElevatorIO.Inputs(logGroup);
+
   private Measure<Distance> targetHeight = Units.Meters.zero();
+  private ControlMode controlMode = ControlMode.OPEN_LOOP;
 
   /** Creates a new ElevatorSubsystem. */
   public Elevator(ElevatorIO io) {
     this.io = io;
 
     setConstants();
+
+    io.setVoltage(0.0);
   }
 
   @Override
   public void periodic() {
     try (var ignored = timing.start()) {
+      // Logging
       io.updateInputs(inputs);
       logInputs_heightInches.info(inputs.heightInches);
       logInputs_velocityInchesPerSecond.info(inputs.velocityInchesPerSecond);
@@ -101,31 +102,50 @@ public class Elevator extends SubsystemBase {
       logInputs_currentAmps.info(inputs.currentAmps);
       logInputs_tempCelsius.info(inputs.tempCelsius);
 
-      // ---- UPDATE TUNABLE NUMBERS
+      logControlMode.info(controlMode);
+
+      // Updating tunable numbers
       var hc = hashCode();
       if (kP.hasChanged(hc)
           || kD.hasChanged(hc)
           || kG.hasChanged(hc)
-          || closedLoopMaxVelocityConstraint.hasChanged(hc)
-          || closedLoopMaxAccelerationConstraint.hasChanged(hc)) {
+          || maxVelocityConfig.hasChanged(hc)
+          || targetAccelerationConfig.hasChanged(hc)) {
         setConstants();
       }
     }
   }
 
-  public void resetSubsystem() {
-    io.setVoltage(0);
-  }
+  // Setters
 
-  public void setVoltage(double volts) {
-    io.setVoltage(volts);
+  public void setPercentOut(double percent) {
+    io.setVoltage(percent);
+    controlMode = ControlMode.OPEN_LOOP;
   }
 
   public void setHeight(Measure<Distance> height) {
     io.setHeight(height);
     targetHeight = height;
     logTargetHeight.info(targetHeight.in(Units.Inches));
+    controlMode = ControlMode.CLOSED_LOOP;
   }
+
+  public void resetSensorToHomePosition() {
+    io.setSensorPosition(Constants.ElevatorConstants.HOME_POSITION);
+  }
+
+  public boolean setNeutralMode(NeutralModeValue value) {
+    return io.setNeutralMode(value);
+  }
+
+  public void setConstants() {
+    MotionMagicConfigs mmConfigs = new MotionMagicConfigs();
+    mmConfigs.MotionMagicAcceleration = targetAccelerationConfig.get();
+    mmConfigs.MotionMagicCruiseVelocity = maxVelocityConfig.get();
+    io.setClosedLoopConstants(kP.get(), kD.get(), kG.get(), mmConfigs);
+  }
+
+  // Getters
 
   public boolean isAtTarget() {
     return Math.abs(targetHeight.in(Units.Inches) - inputs.heightInches) <= tolerance.get();
@@ -139,34 +159,11 @@ public class Elevator extends SubsystemBase {
     return inputs.heightInches;
   }
 
-  public void resetSensorToHomePosition() {
-    io.setSensorPosition(Constants.ElevatorConstants.HOME_POSITION);
-  }
-
   public double getVoltage() {
     return inputs.appliedVolts;
   }
 
   public double getVelocity() {
     return inputs.velocityInchesPerSecond;
-  }
-
-  public boolean setNeutralMode(NeutralModeValue value) {
-    return io.setNeutralMode(value);
-  }
-
-  public void setConstants() {
-    MotionMagicConfigs mmConfigs = new MotionMagicConfigs();
-    mmConfigs.MotionMagicAcceleration = closedLoopMaxAccelerationConstraint.get();
-    mmConfigs.MotionMagicCruiseVelocity = closedLoopMaxVelocityConstraint.get();
-    io.setClosedLoopConstants(kP.get(), kD.get(), kG.get(), mmConfigs);
-  }
-
-  public Constraints getDefaultMotionMagicConstraints() {
-    return motionMagicDefaultConstraints;
-  }
-
-  public Constraints getCurrentMotionMagicConstraints() {
-    return currentMotionMagicConstraints;
   }
 }

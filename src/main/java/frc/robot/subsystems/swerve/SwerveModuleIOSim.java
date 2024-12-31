@@ -23,7 +23,7 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import frc.robot.Constants;
-import frc.robot.configs.RobotConfig2024;
+import frc.robot.configs.RobotConfig2024Maestro;
 import java.util.List;
 
 /**
@@ -37,9 +37,11 @@ public class SwerveModuleIOSim implements SwerveModuleIO {
   private static final double LOOP_PERIOD_SECS = Constants.kDefaultPeriod;
 
   private final DCMotorSim driveSim =
-      new DCMotorSim(DCMotor.getKrakenX60(1), RobotConfig2024.SWERVE_DRIVE_GEAR_RATIO, 0.025);
+      new DCMotorSim(
+          DCMotor.getKrakenX60(1), RobotConfig2024Maestro.SWERVE_DRIVE_GEAR_RATIO, 0.025);
   private final DCMotorSim turnSim =
-      new DCMotorSim(DCMotor.getFalcon500(1), RobotConfig2024.SWERVE_STEER_GEAR_RATIO, 0.004);
+      new DCMotorSim(
+          DCMotor.getFalcon500(1), RobotConfig2024Maestro.SWERVE_STEER_GEAR_RATIO, 0.004);
 
   private final SimpleMotorFeedforward driveFeedforward;
   private final PIDController driveFeedback;

@@ -11,13 +11,13 @@ public interface ShooterIO {
   /** Contains all of the input data received from hardware. */
   class Inputs extends BaseInputs {
     public Rotation2d pivotPosition = Constants.zeroRotation2d;
-    public double pivotVelocityRadsPerSec = 0.0;
-    public double pivotAppliedVolts = 0.0;
-    public double pivotCurrentAmps = 0.0;
+    public double pivotVelocityDegreesPerSec;
+    public double pivotAppliedVolts;
+    public double pivotCurrentAmps;
 
-    public double launcherRPM = 0.0;
-    public double launcherAppliedVolts = 0.0;
-    public double launcherCurrentAmps = 0.0;
+    public double launcherRPM;
+    public double launcherAppliedVolts;
+    public double launcherCurrentAmps;
 
     // launcher, pivot
     public double[] tempsCelcius = new double[2];
@@ -30,7 +30,7 @@ public interface ShooterIO {
   /** Updates the set of loggable inputs. */
   public default void updateInputs(Inputs inputs) {}
 
-  // PIVOT
+  // Pivot
   public default void setPivotPosition(Rotation2d rot) {}
 
   public default void setPivotVoltage(double volts) {}
@@ -40,13 +40,13 @@ public interface ShooterIO {
   public default void setPivotClosedLoopConstants(
       double kP, double kD, double kG, MotionMagicConfigs mmConfigs) {}
 
-  // LAUNCHER
+  // Launcher
   public default void setLauncherVoltage(double volts) {}
 
   public default void setLauncherRPM(double rollerRPM) {}
 
   public default void setLauncherClosedLoopConstants(
-      double kP, double kV, double kS, double maxProfiledAcceleration) {}
+      double kP, double kV, double kS, double targetAccelerationConfig) {}
 
   public default boolean setNeutralMode(NeutralModeValue value) {
     return false;
