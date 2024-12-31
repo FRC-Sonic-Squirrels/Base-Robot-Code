@@ -31,7 +31,8 @@ import frc.lib.team6328.Alert;
 import frc.lib.team6328.Alert.AlertType;
 import frc.robot.configs.RobotConfig;
 import frc.robot.configs.RobotConfig2023Rober;
-import frc.robot.configs.RobotConfig2024;
+import frc.robot.configs.RobotConfig2024Maestro;
+import frc.robot.configs.RobotConfig2025;
 import frc.robot.configs.SimulatorRobotConfig;
 import java.util.function.Supplier;
 
@@ -56,7 +57,7 @@ public final class Constants {
   }
 
   public static class RobotMode {
-    private static final RobotType ROBOT = RobotType.ROBOT_COMPETITION;
+    private static final RobotType ROBOT = RobotType.ROBOT_2024_RETIRED_MAESTRO;
 
     private static final Alert invalidRobotAlert =
         new Alert("Invalid robot selected, using competition robot as default.", AlertType.ERROR);
@@ -86,9 +87,9 @@ public final class Constants {
         return RobotType.ROBOT_SIMBOT;
       }
 
-      if (ROBOT != RobotType.ROBOT_COMPETITION) {
+      if (ROBOT != RobotType.ROBOT_2024_RETIRED_MAESTRO) {
         invalidRobotAlert.set(true);
-        return RobotType.ROBOT_COMPETITION;
+        return RobotType.ROBOT_2024_RETIRED_MAESTRO;
       }
 
       return ROBOT;
@@ -104,7 +105,8 @@ public final class Constants {
       ROBOT_SIMBOT(SimulatorRobotConfig::new),
       ROBOT_SIMBOT_REAL_CAMERAS(SimulatorRobotConfig::new),
       ROBOT_2023_RETIRED_ROBER(RobotConfig2023Rober::new),
-      ROBOT_COMPETITION(RobotConfig2024::new);
+      ROBOT_2024_RETIRED_MAESTRO(RobotConfig2024Maestro::new),
+      ROBOT_2025(RobotConfig2025::new);
 
       public final Supplier<RobotConfig> config;
 
@@ -122,9 +124,8 @@ public final class Constants {
 
   public static double MAX_VOLTAGE = 12.0;
 
-  public static class FieldConstants {
+  public static class FieldConstants { // TODO: check all constants for new season
     // official Field dimensions
-    // https://github.com/wpilibsuite/allwpilib/blob/main/apriltag/src/main/native/resources/edu/wpi/first/apriltag/2024-crescendo.json.
     public static double FIELD_LENGTH = 16.541;
     public static double FIELD_WIDTH = 8.211;
 
@@ -188,37 +189,44 @@ public final class Constants {
       public static final double STALL_CURRENT_AMPS = 40.0;
       public static final double FREE_CURRENT_AMPS = 30.0;
       public static final double FREE_SPEED_RPM = 6000.0;
+      public static final double SUPPLY_VOLTAGE_TIME = 0.02;
     }
   }
 
-  public static class IntakeConstants {
+  public static class IntakeConstants { // TODO: check all constants for new season
     public static final double INTAKE_IDLE_PERCENT_OUT = 0.8;
 
     public static final double INTAKE_INTAKING_PERCENT_OUT = 1.0;
 
     public static final double GEARING = 1.0;
-    public static final double MOI = 5.0;
+    public static final double MOI = 0.05;
+
+    public static final double SUPPLY_CURRENT_LIMIT = 40.0;
+    public static final String ROOT_TABLE = "Intake";
   }
 
-  public static class ElevatorConstants {
-    // https://ss2930.sharepoint.com/:x:/s/Engineering/ETkKz1CrsINGj5Ia29ENxT4BE_Iqd_kAK_04iaW3kLqPuQ?clickparams=eyJBcHBOYW1lIjoiVGVhbXMtRGVza3RvcCIsIkFwcFZlcnNpb24iOiI0OS8yMzExMzAyODcyNCJ9
+  public static class ElevatorConstants { // TODO: check all constants for new season
     public static final double GEAR_RATIO = 23.05;
-    public static final double PULLEY_DIAMETER = 2.256;
+    public static final Measure<Distance> PULLEY_DIAMETER = Units.Inches.of(2.256);
     public static final double CARRIAGE_MASS = 10.0; // arbitrary
+
+    public static final double INCHES_TO_MOTOR_ROT =
+        Constants.ElevatorConstants.GEAR_RATIO
+            / (Math.PI * Constants.ElevatorConstants.PULLEY_DIAMETER.in(Units.Inches));
+
     public static final Measure<Distance> MAX_HEIGHT = Units.Inches.of(26.2);
     public static final Measure<Distance> MAX_LEGAL_HEIGHT = Units.Inches.of(26.2); // FIXME
     public static final Measure<Distance> TRUE_TOP_HARD_STOP = Units.Inches.of(26.5);
 
     public static final Measure<Distance> SAFE_HEIGHT = Units.Inches.of(15.491);
-    public static final Measure<Distance> SUPPLY_CURRENT_LIMIT = Units.Inches.of(40.0);
+    public static final double SUPPLY_CURRENT_LIMIT = 40.0;
 
-    // FIXME: home position needs to be changed now that we added spacers to
-    // swerveModule
     public static final Measure<Distance> HOME_POSITION = Units.Inches.of(7.35);
     public static final Measure<Distance> LOADING_POSITION = Units.Inches.of(7.35); // was 7.5
+    public static final String ROOT_TABLE = "Elevator";
   }
 
-  public static class ShooterConstants {
+  public static class ShooterConstants { // TODO: check all constants for new season
     public static final double PREP_RPM = 2500.0;
     public static final double SHOOTING_RPM = 8000.0;
     public static final double SHOOTING_PERCENT_OUT = 0.95;
@@ -227,7 +235,7 @@ public final class Constants {
     public static final Measure<Distance> MAX_SHOOTING_DISTANCE = Units.Inches.of(180.0);
 
     public static final double SHOOTING_SPEED =
-        SHOOTING_RPM / 60.0 * Launcher.WHEEL_DIAMETER.in(Units.Meters) * Math.PI;
+        SHOOTING_RPM / 60.0 * LauncherConstants.WHEEL_DIAMETER.in(Units.Meters) * Math.PI;
 
     public static final double SHOOTING_TIME = 0.2;
 
@@ -238,9 +246,14 @@ public final class Constants {
         new Translation3d(
             SHOOTER_OFFSET.getX(), SHOOTER_OFFSET.getY(), Units.Inches.of(5).in(Units.Meters));
 
-    public static class Pivot {
-      // TODO: fix these values:
+    public static final String ROOT_TABLE = "Shooter";
+
+    public static class PivotConstants { // TODO: check all constants for new season
       public static final double GEARING = 125.0;
+
+      public static final double SUPPLY_CURRENT_LIMIT = 40.0;
+      public static final double SUPPLY_CURRENT_THRESHOLD = 60.0;
+      public static final double SUPPLY_TIME_THRESHOLD = 0.1;
 
       public static final Rotation2d MIN_ANGLE_RAD = Rotation2d.fromDegrees(12.0);
       public static final Rotation2d MAX_ANGLE_RAD =
@@ -268,23 +281,27 @@ public final class Constants {
         }
         return PITCH_ADJUSTMENT_MAP.get(distance.in(Units.Meters));
       }
+
+      public static final String ROOT_TABLE = "Pivot";
     }
 
-    public static class Launcher {
-      public static final double MOI = 5.0;
-      // FIXME: THIS VALUE HAS TO BE CONFIRMED
+    public static class LauncherConstants { // TODO: check all constants for new season
+      public static final double MOI = 0.01;
       public static final double GEARING = (18.0 / 30.0);
       public static final Measure<Distance> WHEEL_DIAMETER = Units.Inches.of(2.0);
+      public static final double SUPPLY_CURRENT_LIMIT = 40.0;
+      public static final double SUPPLY_CURRENT_THRESHOLD = 60.0;
+      public static final double SUPPLY_TIME_THRESHOLD = 0.1;
+      public static final String ROOT_TABLE = "Launcher";
     }
   }
 
-  public static class LEDConstants {
-    // TODO: check these values
+  public static class LEDConstants { // TODO: check all constants for new season
     public static final int PWM_PORT = 9;
     public static final int MAX_LED_LENGTH = 60;
   }
 
-  public static class CanIDs {
+  public static class CanIDs { // TODO: check all constants for new season
     // READ ME: CAN ID's THAT ARE NOT VALID TO USE
     // 1, 11, 21, 31
     // 2, 12, 22, 32
@@ -297,7 +314,6 @@ public final class Constants {
 
     public static final int SHOOTER_CAN_ID = 33;
     public static final int SHOOTER_PIVOT_CAN_ID = 32;
-    public static final int SHOOTER_KICKER_CAN_ID = 35;
     public static final int SHOOTER_TOF_CAN_ID = 38;
 
     public static final int ARM_CAN_ID = 17;
@@ -305,15 +321,11 @@ public final class Constants {
     public static final int ELEVATOR_CAN_ID = 37;
 
     public static final int END_EFFECTOR_CAN_ID = 30;
-    public static final int END_EFFECTOR_INTAKE_SIDE_TOF_CAN_ID = 39;
-    public static final int END_EFFECTOR_SHOOTER_SIDE_TOF_CAN_ID = 40;
 
     public static final int GYRO_2_CAN_ID = 41;
   }
 
-  public static class DIOPorts {
-    // TODO: get actual DIO ports
-  }
+  public static class DIOPorts {}
 
   public enum ControlMode {
     POSITION,
@@ -321,8 +333,12 @@ public final class Constants {
     VOLTAGE
   }
 
-  public static class ArmConstants {
+  public static class ArmConstants { // TODO: check all constants for new season
+    public static final double SUPPLY_CURRENT_LIMIT = 40.0;
+
     public static final double GEAR_RATIO = (50.0 / 12.0) * (50.0 / 20.0) * (42.0 / 18.0);
+
+    public static final double MOI = 0.15;
 
     public static final Rotation2d MAX_ARM_ANGLE = Rotation2d.fromDegrees(165);
     public static final Rotation2d MIN_ARM_ANGLE = Rotation2d.fromDegrees(-90);
@@ -332,22 +348,32 @@ public final class Constants {
 
     public static final Rotation2d TRAP_SCORE_ANGLE = Rotation2d.fromDegrees(15.0);
 
-    public static final Measure<Distance> ARM_LENGTH = Units.Inches.of(15.5);
+    public static final Measure<Distance> ARM_LENGTH = Units.Inches.of(14);
+
+    public static final String ROOT_TABLE = "Arm";
   }
 
-  public static class VisionGamepieceConstants {
+  public static class VisionGamepieceConstants { // TODO: check all constants for new season
     public static final Pose3d GAMEPIECE_CAMERA_POSE =
         new Pose3d(
             Units.Inches.of(5.3).in(Units.Meters),
             0.0,
             Units.Inches.of(18.725).in(Units.Meters),
             new Rotation3d(0.0, Math.toRadians(-12), 0.0));
-    public static final String CAMERA_NAME = RobotConfig2024.OBJECT_DETECTION_CAMERA_NAME;
+    public static final String CAMERA_NAME = RobotConfig2024Maestro.OBJECT_DETECTION_CAMERA_NAME;
+    public static final int RESOLUTION_WIDTH_PIXELS = 960;
+    public static final int RESOLUTION_HEIGHT_PIXELS = 720;
+    public static final Rotation2d FOV_DIAGONAL = Rotation2d.fromDegrees(128.2);
+    public static final double AVERAGE_ERROR_PIXELS = 0.35;
+    public static final double AVERAGE_STANDARD_DEVIATION_PIXELS = 0.1;
+    public static final double FPS = 15;
+    public static final double AVERAGE_LATENCY_MS = 25;
+    public static final double AVERAGE_STANDARD_DEVIATION_MS = 10;
   }
 
-  public static class AutoConstants {
+  public static class AutoConstants { // TODO: check all constants for new season
     public static final Measure<Distance> DIST_TO_START_INTAKING = Units.Meters.of(1.0);
   }
 
-  public static boolean unusedCode = false;
+  public static final boolean unusedCode = false;
 }

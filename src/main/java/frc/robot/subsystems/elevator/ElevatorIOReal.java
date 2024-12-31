@@ -13,21 +13,17 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.Distance;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Units;
 import frc.robot.Constants;
 import frc.robot.Constants.ElevatorConstants;
+import frc.robot.Constants.MotorConstants.KrakenConstants;
 
 public class ElevatorIOReal implements ElevatorIO {
 
   private final TalonFX motor = new TalonFX(Constants.CanIDs.ELEVATOR_CAN_ID);
 
-  private static final double inchesToMotorRot =
-      Constants.ElevatorConstants.GEAR_RATIO
-          / (Math.PI * Constants.ElevatorConstants.PULLEY_DIAMETER);
-  // FIXME: add FOC
   private final MotionMagicVoltage closedLoopControl =
       new MotionMagicVoltage(0.0).withEnableFOC(true);
   private final VoltageOut openLoopControl = new VoltageOut(0.0).withEnableFOC(true);
@@ -41,30 +37,30 @@ public class ElevatorIOReal implements ElevatorIO {
   private final BaseStatusSignal[] refreshSet;
 
   public ElevatorIOReal() {
+    // Motor config
     TalonFXConfiguration config = new TalonFXConfiguration();
 
-    // FIXME: maybe make this more aggressive?
-    config.CurrentLimits.SupplyCurrentLimit = 40.0;
+    config.CurrentLimits.SupplyCurrentLimit = ElevatorConstants.SUPPLY_CURRENT_LIMIT;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
 
     config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
     config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
 
-    // config.Voltage.PeakForwardVoltage = 2.0;
-    // config.Voltage.PeakReverseVoltage = -2.0;
-
     config.SoftwareLimitSwitch.ForwardSoftLimitThreshold =
-        ElevatorConstants.MAX_HEIGHT.in(Units.Inches) * inchesToMotorRot;
+        ElevatorConstants.MAX_HEIGHT.in(Units.Inches) * ElevatorConstants.INCHES_TO_MOTOR_ROT;
     config.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
 
-    config.SoftwareLimitSwitch.ReverseSoftLimitThreshold = 0.0 * inchesToMotorRot;
+    config.SoftwareLimitSwitch.ReverseSoftLimitThreshold =
+        0.0 * ElevatorConstants.INCHES_TO_MOTOR_ROT;
     config.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
 
     config.Slot0.GravityType = GravityTypeValue.Elevator_Static;
 
-    config.Voltage.SupplyVoltageTimeConstant = 0.02;
+    config.Voltage.SupplyVoltageTimeConstant = KrakenConstants.SUPPLY_VOLTAGE_TIME;
 
     motor.getConfigurator().apply(config);
+
+    // Status signals
 
     rotorPosition = motor.getRotorPosition();
     rotorVelocity = motor.getRotorVelocity();
@@ -72,14 +68,14 @@ public class ElevatorIOReal implements ElevatorIO {
     currentAmps = motor.getStatorCurrent();
     tempCelsius = motor.getDeviceTemp();
 
+    // Update status signals
+
     BaseStatusSignal.setUpdateFrequencyForAll(100, rotorPosition, rotorVelocity);
     BaseStatusSignal.setUpdateFrequencyForAll(50, appliedVolts, currentAmps);
     BaseStatusSignal.setUpdateFrequencyForAll(1, tempCelsius);
 
     motor.optimizeBusUtilization();
 
-    // leftServo.setAlwaysHighMode();
-    // rightServo.setAlwaysHighMode();
     refreshSet =
         new BaseStatusSignal[] {
           rotorPosition, rotorVelocity, appliedVolts, currentAmps, tempCelsius
@@ -90,8 +86,9 @@ public class ElevatorIOReal implements ElevatorIO {
   public void updateInputs(Inputs inputs) {
     inputs.refreshAll(refreshSet);
 
-    inputs.heightInches = rotorPosition.getValueAsDouble() / inchesToMotorRot;
-    inputs.velocityInchesPerSecond = rotorVelocity.getValueAsDouble() / inchesToMotorRot;
+    inputs.heightInches = rotorPosition.getValueAsDouble() / ElevatorConstants.INCHES_TO_MOTOR_ROT;
+    inputs.velocityInchesPerSecond =
+        rotorVelocity.getValueAsDouble() / ElevatorConstants.INCHES_TO_MOTOR_ROT;
     inputs.appliedVolts = appliedVolts.getValueAsDouble();
     inputs.currentAmps = currentAmps.getValueAsDouble();
     inputs.tempCelsius = tempCelsius.getValueAsDouble();
@@ -105,32 +102,29 @@ public class ElevatorIOReal implements ElevatorIO {
 
   @Override
   public void setHeight(Measure<Distance> height) {
-    closedLoopControl.withPosition(height.in(Units.Inches) * inchesToMotorRot);
+    closedLoopControl.withPosition(height.in(Units.Inches) * ElevatorConstants.INCHES_TO_MOTOR_ROT);
     motor.setControl(closedLoopControl);
   }
 
   @Override
   public void setSensorPosition(Measure<Distance> position) {
-    motor.setPosition(position.in(Units.Inches) * inchesToMotorRot);
+    motor.setPosition(position.in(Units.Inches) * ElevatorConstants.INCHES_TO_MOTOR_ROT);
   }
 
   @Override
-  public void setPIDConstraints(double kP, double kD, double kG, Constraints constraints) {
+  public void setClosedLoopConstants(
+      double kP, double kD, double kG, MotionMagicConfigs mmConfigs) {
     Slot0Configs pidConfig = new Slot0Configs();
-    MotionMagicConfigs mmConfig = new MotionMagicConfigs();
 
     motor.getConfigurator().refresh(pidConfig);
-    motor.getConfigurator().refresh(mmConfig);
+    motor.getConfigurator().refresh(mmConfigs);
 
     pidConfig.kP = kP;
     pidConfig.kD = kD;
     pidConfig.kG = kG;
 
-    mmConfig.MotionMagicCruiseVelocity = constraints.maxVelocity;
-    mmConfig.MotionMagicAcceleration = constraints.maxAcceleration;
-
     motor.getConfigurator().apply(pidConfig);
-    motor.getConfigurator().apply(mmConfig);
+    motor.getConfigurator().apply(mmConfigs);
   }
 
   @Override

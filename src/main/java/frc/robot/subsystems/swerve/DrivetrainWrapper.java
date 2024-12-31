@@ -10,6 +10,8 @@ import frc.lib.team2930.LoggerEntry;
 import frc.lib.team2930.LoggerGroup;
 
 public class DrivetrainWrapper {
+
+  // Logging
   private static final LoggerGroup logGroup = LoggerGroup.build("DrivetrainWrapper");
   private static final LoggerEntry.Struct<ChassisSpeeds> logChassisSpeedsBase =
       logGroup.buildStruct(ChassisSpeeds.class, "chassisSpeedsBase");
@@ -28,32 +30,7 @@ public class DrivetrainWrapper {
     this.drivetrain = drivetrain;
   }
 
-  /**
-   * Sets robot-centric chassis speeds
-   *
-   * @param chassisSpeeds speeds (m/s, rad/s)
-   */
-  public void setVelocity(ChassisSpeeds chassisSpeeds) {
-    if (chassisSpeeds == null) chassisSpeeds = new ChassisSpeeds();
-    chassisSpeedsBase = chassisSpeeds;
-  }
-
-  public void setVelocityOverride(ChassisSpeeds chassisSpeeds) {
-    chassisSpeedsOverride = chassisSpeeds;
-  }
-
-  public void resetVelocityOverride() {
-    chassisSpeedsOverride = null;
-  }
-
-  public void setRotationOverride(double omega) {
-    omegaOverride = omega;
-  }
-
-  public void resetRotationOverride() {
-    omegaOverride = Double.NaN;
-  }
-
+  /** Updated periodically, updates swerve state. */
   public void apply() {
     if (chassisSpeedsBase != null) {
       logChassisSpeedsBase.info(chassisSpeedsBase);
@@ -90,6 +67,47 @@ public class DrivetrainWrapper {
     logGyroDrift.info(pose1.getRotation().minus(pose2.getRotation()));
   }
 
+  // Setters
+
+  /**
+   * Sets robot-centric chassis speeds
+   *
+   * @param chassisSpeeds speeds (m/s, rad/s)
+   */
+  public void setVelocity(ChassisSpeeds chassisSpeeds) {
+    if (chassisSpeeds == null) chassisSpeeds = new ChassisSpeeds();
+    chassisSpeedsBase = chassisSpeeds;
+  }
+
+  public void setVelocityOverride(ChassisSpeeds chassisSpeeds) {
+    chassisSpeedsOverride = chassisSpeeds;
+  }
+
+  public void resetVelocityOverride() {
+    chassisSpeedsOverride = null;
+  }
+
+  public void setRotationOverride(double omega) {
+    omegaOverride = omega;
+  }
+
+  public void resetRotationOverride() {
+    omegaOverride = Double.NaN;
+  }
+
+  public SysIdRoutine.Mechanism getSysIdMechanism() {
+    return new SysIdRoutine.Mechanism(
+        (voltage) -> drivetrain.runCharacterizationVolts(voltage.in(Units.Volts)),
+        null, // No log consumer, since data is recorded by AdvantageKit
+        drivetrain);
+  }
+
+  public void setPose(Pose2d pose) {
+    drivetrain.setPose(pose);
+  }
+
+  // Getters
+
   public Subsystem getRequirements() {
     return drivetrain;
   }
@@ -125,16 +143,5 @@ public class DrivetrainWrapper {
 
   public Rotation2d getRotationGyroOnly() {
     return drivetrain.getRotationGyroOnly();
-  }
-
-  public SysIdRoutine.Mechanism getSysIdMechanism() {
-    return new SysIdRoutine.Mechanism(
-        (voltage) -> drivetrain.runCharacterizationVolts(voltage.in(Units.Volts)),
-        null, // No log consumer, since data is recorded by AdvantageKit
-        drivetrain);
-  }
-
-  public void setPose(Pose2d pose) {
-    drivetrain.setPose(pose);
   }
 }

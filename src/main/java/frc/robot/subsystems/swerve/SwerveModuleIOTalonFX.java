@@ -51,7 +51,7 @@ import java.util.List;
  */
 public class SwerveModuleIOTalonFX implements SwerveModuleIO {
 
-  // -- CONSTANTS
+  // Constants
   private final int driveMotorCANID;
   private final int steerMotorCANID;
   private final int cancoderCANID;
@@ -66,12 +66,15 @@ public class SwerveModuleIOTalonFX implements SwerveModuleIO {
 
   private final double DRIVE_GEAR_RATIO;
   private final double TURN_GEAR_RATIO;
-  // -- CONSTANTS
 
+  private final double distanceToRotation;
+
+  // Motors and encoder
   private final TalonFX driveTalon;
   private final TalonFX turnTalon;
   private final CANcoder cancoder;
 
+  // Status signals
   private final StatusSignal<Double> drivePosition;
   private final StatusSignal<Double> driveVelocity;
   private final StatusSignal<Double> driveAppliedVolts;
@@ -82,7 +85,6 @@ public class SwerveModuleIOTalonFX implements SwerveModuleIO {
   private final StatusSignal<Double> turnVelocity;
   private final StatusSignal<Double> turnAppliedVolts;
   private final StatusSignal<Double> turnCurrent;
-  private final double distanceToRotation;
 
   private VoltageOut driveVoltageRequest;
   private VoltageOut steerVoltageRequest;
@@ -93,8 +95,6 @@ public class SwerveModuleIOTalonFX implements SwerveModuleIO {
   private MotionMagicVoltage turnMotionMagicVoltageRequest =
       new MotionMagicVoltage(0.0).withEnableFOC(true);
 
-  private final IndividualSwerveModuleConfig moduleSpecificConfig;
-
   private Rotation2d turnRelativeOffset; // Relative + Offset = Absolute
   private double lastPositionMeters;
 
@@ -104,7 +104,6 @@ public class SwerveModuleIOTalonFX implements SwerveModuleIO {
       RobotConfig globalConfig, IndividualSwerveModuleConfig moduleSpecificConfig) {
 
     // --- define constants ---
-    this.moduleSpecificConfig = moduleSpecificConfig;
 
     this.distanceToRotation =
         1.0 / globalConfig.getWheelRadius().in(edu.wpi.first.units.Units.Meters);
@@ -262,6 +261,8 @@ public class SwerveModuleIOTalonFX implements SwerveModuleIO {
     return res;
   }
 
+  // Drive
+
   @Override
   public void setDriveVoltage(double volts) {
     driveTalon.setControl(driveVoltageRequest.withOutput(volts));
@@ -284,20 +285,6 @@ public class SwerveModuleIOTalonFX implements SwerveModuleIO {
   }
 
   @Override
-  public void setTurnVoltage(double volts) {
-    turnTalon.setControl(steerVoltageRequest.withOutput(volts));
-  }
-
-  @Override
-  public void setTurnPosition(Rotation2d position) {
-    if (turnRelativeOffset != null) {
-      position = position.minus(turnRelativeOffset);
-    }
-
-    turnTalon.setControl(turnMotionMagicVoltageRequest.withPosition(position.getRotations()));
-  }
-
-  @Override
   public void setDriveBrakeMode(boolean enable) {
     var config = new MotorOutputConfigs();
     StatusCode code = driveTalon.getConfigurator().refresh(config);
@@ -306,17 +293,6 @@ public class SwerveModuleIOTalonFX implements SwerveModuleIO {
 
     config.NeutralMode = enable ? NeutralModeValue.Brake : NeutralModeValue.Coast;
     driveTalon.getConfigurator().apply(config);
-  }
-
-  @Override
-  public void setTurnBrakeMode(boolean enable) {
-    var config = new MotorOutputConfigs();
-    StatusCode code = turnTalon.getConfigurator().refresh(config);
-
-    if (code != StatusCode.OK) return;
-
-    config.NeutralMode = enable ? NeutralModeValue.Brake : NeutralModeValue.Coast;
-    turnTalon.getConfigurator().apply(config);
   }
 
   @Override
@@ -333,6 +309,33 @@ public class SwerveModuleIOTalonFX implements SwerveModuleIO {
     pidConfig.kA = kA;
 
     configurator.apply(pidConfig);
+  }
+
+  // Turn
+
+  @Override
+  public void setTurnVoltage(double volts) {
+    turnTalon.setControl(steerVoltageRequest.withOutput(volts));
+  }
+
+  @Override
+  public void setTurnPosition(Rotation2d position) {
+    if (turnRelativeOffset != null) {
+      position = position.minus(turnRelativeOffset);
+    }
+
+    turnTalon.setControl(turnMotionMagicVoltageRequest.withPosition(position.getRotations()));
+  }
+
+  @Override
+  public void setTurnBrakeMode(boolean enable) {
+    var config = new MotorOutputConfigs();
+    StatusCode code = turnTalon.getConfigurator().refresh(config);
+
+    if (code != StatusCode.OK) return;
+
+    config.NeutralMode = enable ? NeutralModeValue.Brake : NeutralModeValue.Coast;
+    turnTalon.getConfigurator().apply(config);
   }
 
   @Override

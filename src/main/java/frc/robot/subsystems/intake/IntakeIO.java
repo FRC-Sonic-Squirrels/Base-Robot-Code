@@ -6,10 +6,10 @@ import frc.robot.subsystems.BaseInputs;
 public interface IntakeIO {
   /** Contains all of the input data received from hardware. */
   class Inputs extends BaseInputs {
-    public double velocityRPM = 0.0;
-    public double currentAmps = 0.0;
-    public double tempCelsius = 0.0;
-    public double appliedVolts = 0.0;
+    public double velocityRPM;
+    public double currentAmps;
+    public double tempCelsius;
+    public double appliedVolts;
 
     public Inputs(LoggerGroup logInputs) {
       super(logInputs);
@@ -24,5 +24,5 @@ public interface IntakeIO {
   public default void setVelocity(double revPerMin) {}
 
   public default void setClosedLoopConstants(
-      double kP, double kV, double kS, double maxProfiledAcceleration) {}
+      double kP, double kV, double kS, double targetAccelerationConfig) {}
 }

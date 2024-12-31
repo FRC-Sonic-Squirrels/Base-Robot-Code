@@ -15,14 +15,17 @@ import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.units.Units;
 import frc.robot.Constants;
+import frc.robot.Constants.MotorConstants.KrakenConstants;
 import frc.robot.Constants.ShooterConstants;
+import frc.robot.Constants.ShooterConstants.LauncherConstants;
+import frc.robot.Constants.ShooterConstants.PivotConstants;
 
 public class ShooterIOReal implements ShooterIO {
 
-  TalonFX launcher = new TalonFX(Constants.CanIDs.SHOOTER_CAN_ID);
-  TalonFX pivot = new TalonFX(Constants.CanIDs.SHOOTER_PIVOT_CAN_ID);
-  TalonFX kicker = new TalonFX(Constants.CanIDs.SHOOTER_KICKER_CAN_ID);
+  private final TalonFX launcher = new TalonFX(Constants.CanIDs.SHOOTER_CAN_ID);
+  private final TalonFX pivot = new TalonFX(Constants.CanIDs.SHOOTER_PIVOT_CAN_ID);
 
   private final StatusSignal<Double> pivotPosition;
   private final StatusSignal<Double> pivotVelocity;
@@ -46,49 +49,48 @@ public class ShooterIOReal implements ShooterIO {
       new MotionMagicVelocityVoltage(0.0).withEnableFOC(true);
   private final VoltageOut launcherOpenLoop = new VoltageOut(0.0).withEnableFOC(true);
 
-  private final MotionMagicVelocityVoltage kickerClosedLoop =
-      new MotionMagicVelocityVoltage(0, 0, true, 0, 0, false, false, false);
-
   public ShooterIOReal() {
-    // --- launcher config ---
+    // Launcher config
     TalonFXConfiguration launcherConfig = new TalonFXConfiguration();
 
-    // FIXME: get true current limits
-    launcherConfig.CurrentLimits.SupplyCurrentLimit = 40;
-    launcherConfig.CurrentLimits.SupplyCurrentThreshold = 60.0;
-    launcherConfig.CurrentLimits.SupplyTimeThreshold = 0.1;
+    launcherConfig.CurrentLimits.SupplyCurrentLimit = LauncherConstants.SUPPLY_CURRENT_LIMIT;
+    launcherConfig.CurrentLimits.SupplyCurrentThreshold =
+        LauncherConstants.SUPPLY_CURRENT_THRESHOLD;
+    launcherConfig.CurrentLimits.SupplyTimeThreshold = LauncherConstants.SUPPLY_TIME_THRESHOLD;
     launcherConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
 
     launcherConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
     launcherConfig.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
-    launcherConfig.Feedback.SensorToMechanismRatio = ShooterConstants.Launcher.GEARING;
+    launcherConfig.Feedback.SensorToMechanismRatio = ShooterConstants.LauncherConstants.GEARING;
 
     launcherConfig.Voltage.PeakReverseVoltage = 0.0;
-    launcherConfig.Voltage.SupplyVoltageTimeConstant = 0.02;
+    launcherConfig.Voltage.SupplyVoltageTimeConstant = KrakenConstants.SUPPLY_VOLTAGE_TIME;
 
     launcher.getConfigurator().apply(launcherConfig);
 
-    // --- pivot config ---
+    // Pivot config
     TalonFXConfiguration pivotConfig = new TalonFXConfiguration();
 
-    pivotConfig.CurrentLimits.SupplyCurrentLimit = 40;
-    pivotConfig.CurrentLimits.SupplyCurrentThreshold = 60.0;
-    pivotConfig.CurrentLimits.SupplyTimeThreshold = 0.1;
+    pivotConfig.CurrentLimits.SupplyCurrentLimit = PivotConstants.SUPPLY_CURRENT_LIMIT;
+    pivotConfig.CurrentLimits.SupplyCurrentThreshold = PivotConstants.SUPPLY_CURRENT_THRESHOLD;
+    pivotConfig.CurrentLimits.SupplyTimeThreshold = PivotConstants.SUPPLY_TIME_THRESHOLD;
     pivotConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
 
-    pivotConfig.Feedback.SensorToMechanismRatio = Constants.ShooterConstants.Pivot.GEARING;
+    pivotConfig.Feedback.SensorToMechanismRatio = PivotConstants.GEARING;
     pivotConfig.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
     pivotConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 
     pivotConfig.SoftwareLimitSwitch.ForwardSoftLimitThreshold =
-        Constants.ShooterConstants.Pivot.MAX_ANGLE_RAD.getRotations();
+        PivotConstants.MAX_ANGLE_RAD.getRotations();
     pivotConfig.SoftwareLimitSwitch.ReverseSoftLimitThreshold =
-        Constants.ShooterConstants.Pivot.MIN_ANGLE_RAD.getRotations();
+        PivotConstants.MIN_ANGLE_RAD.getRotations();
 
     pivotConfig.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
     pivotConfig.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
 
     pivot.getConfigurator().apply(pivotConfig);
+
+    // Pivot status signals
 
     pivotPosition = pivot.getPosition();
     pivotVelocity = pivot.getVelocity();
@@ -96,10 +98,14 @@ public class ShooterIOReal implements ShooterIO {
     pivotCurrentAmps = pivot.getStatorCurrent();
     pivotTempCelsius = pivot.getDeviceTemp();
 
+    // Launcher status signals
+
     launcherVelocity = launcher.getVelocity();
     launcherVoltage = launcher.getMotorVoltage();
     launcherCurrentAmps = launcher.getStatorCurrent();
     launcherTempCelsius = launcher.getDeviceTemp();
+
+    // Update status signals
 
     BaseStatusSignal.setUpdateFrequencyForAll(100, pivotPosition, launcherVelocity);
     BaseStatusSignal.setUpdateFrequencyForAll(50, pivotVelocity, pivotVoltage, pivotCurrentAmps);
@@ -108,7 +114,6 @@ public class ShooterIOReal implements ShooterIO {
 
     launcher.optimizeBusUtilization();
     pivot.optimizeBusUtilization();
-    kicker.optimizeBusUtilization();
 
     refreshSet =
         new BaseStatusSignal[] {
@@ -130,14 +135,14 @@ public class ShooterIOReal implements ShooterIO {
     inputs.refreshAll(refreshSet);
 
     inputs.pivotPosition = Rotation2d.fromRotations(pivotPosition.getValueAsDouble());
-    // rotations to rads = mult by 2pi. 1 full rot = 2pi rads
-    inputs.pivotVelocityRadsPerSec = pivotVelocity.getValueAsDouble() * (2 * Math.PI);
+    inputs.pivotVelocityDegreesPerSec =
+        Units.RotationsPerSecond.of(pivotVelocity.getValueAsDouble()).in(Units.DegreesPerSecond);
     inputs.pivotAppliedVolts = pivotVoltage.getValueAsDouble();
     inputs.pivotCurrentAmps = pivotCurrentAmps.getValueAsDouble();
 
-    inputs.launcherRPM = launcherVelocity.getValueAsDouble() * 60.0;
+    inputs.launcherRPM =
+        Units.RotationsPerSecond.of(launcherVelocity.getValueAsDouble()).in(Units.RPM);
 
-    // rps to rpm = mult by 60
     inputs.launcherAppliedVolts = launcherVoltage.getValueAsDouble();
 
     inputs.launcherCurrentAmps = launcherCurrentAmps.getValueAsDouble();
@@ -177,28 +182,23 @@ public class ShooterIOReal implements ShooterIO {
 
   @Override
   public void setPivotClosedLoopConstants(
-      double kP, double kD, double kG, double maxProfiledVelocity, double maxProfiledAcceleration) {
+      double kP, double kD, double kG, MotionMagicConfigs mmConfigs) {
     Slot0Configs pidConfig = new Slot0Configs();
-    MotionMagicConfigs mmConfig = new MotionMagicConfigs();
 
     var configurator = pivot.getConfigurator();
     configurator.refresh(pidConfig);
-    configurator.refresh(mmConfig);
 
     pidConfig.kP = kP;
     pidConfig.kD = kD;
     pidConfig.kG = kG;
 
-    mmConfig.MotionMagicCruiseVelocity = maxProfiledVelocity;
-    mmConfig.MotionMagicAcceleration = maxProfiledAcceleration;
-
     configurator.apply(pidConfig);
-    configurator.apply(mmConfig);
+    configurator.apply(mmConfigs);
   }
 
   @Override
   public void setLauncherClosedLoopConstants(
-      double kP, double kV, double kS, double maxProfiledAcceleration) {
+      double kP, double kV, double kS, double targetAccelerationConfig) {
     Slot0Configs pidConfig = new Slot0Configs();
     MotionMagicConfigs mmConfig = new MotionMagicConfigs();
 
@@ -211,7 +211,7 @@ public class ShooterIOReal implements ShooterIO {
     pidConfig.kV = kV;
     pidConfig.kS = kS;
 
-    mmConfig.MotionMagicAcceleration = maxProfiledAcceleration;
+    mmConfig.MotionMagicAcceleration = targetAccelerationConfig;
 
     leadConfigurator.apply(pidConfig);
     leadConfigurator.apply(mmConfig);

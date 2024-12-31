@@ -11,8 +11,10 @@ import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import edu.wpi.first.units.Units;
 import frc.robot.Constants;
 import frc.robot.Constants.IntakeConstants;
+import frc.robot.Constants.MotorConstants.KrakenConstants;
 
 public class IntakeIOReal implements IntakeIO {
   private TalonFX motor = new TalonFX(Constants.CanIDs.INTAKE_CAN_ID);
@@ -25,16 +27,16 @@ public class IntakeIOReal implements IntakeIO {
   private final VoltageOut openLoopControl = new VoltageOut(0.0).withEnableFOC(true);
 
   private final MotionMagicVelocityVoltage closedLoopControl =
-      new MotionMagicVelocityVoltage(0, 0, true, 0, 0, false, false, false);
+      new MotionMagicVelocityVoltage(0).withEnableFOC(true);
 
   private final BaseStatusSignal[] refreshSet;
 
   public IntakeIOReal() {
-
+    // Motor config
     TalonFXConfiguration config = new TalonFXConfiguration();
     CurrentLimitsConfigs currentLimitConfig = new CurrentLimitsConfigs();
 
-    currentLimitConfig.SupplyCurrentLimit = 40.0;
+    currentLimitConfig.SupplyCurrentLimit = IntakeConstants.SUPPLY_CURRENT_LIMIT;
     currentLimitConfig.SupplyCurrentLimitEnable = true;
 
     config.CurrentLimits = currentLimitConfig;
@@ -43,14 +45,18 @@ public class IntakeIOReal implements IntakeIO {
     config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
     config.MotorOutput.NeutralMode = NeutralModeValue.Coast;
 
-    config.Voltage.SupplyVoltageTimeConstant = 0.02;
+    config.Voltage.SupplyVoltageTimeConstant = KrakenConstants.SUPPLY_VOLTAGE_TIME;
 
     motor.getConfigurator().apply(config);
+
+    // Status signals
 
     currentAmps = motor.getStatorCurrent();
     deviceTemp = motor.getDeviceTemp();
     appliedVolts = motor.getMotorVoltage();
     velocityRPS = motor.getVelocity();
+
+    // Update status signals
 
     BaseStatusSignal.setUpdateFrequencyForAll(50, appliedVolts, currentAmps, velocityRPS);
     BaseStatusSignal.setUpdateFrequencyForAll(1, deviceTemp);
@@ -66,7 +72,7 @@ public class IntakeIOReal implements IntakeIO {
     inputs.currentAmps = currentAmps.getValueAsDouble();
     inputs.tempCelsius = deviceTemp.getValueAsDouble();
     inputs.appliedVolts = appliedVolts.getValueAsDouble();
-    inputs.velocityRPM = velocityRPS.getValueAsDouble() * 60.0;
+    inputs.velocityRPM = Units.RotationsPerSecond.of(velocityRPS.getValueAsDouble()).in(Units.RPM);
   }
 
   @Override
@@ -76,12 +82,13 @@ public class IntakeIOReal implements IntakeIO {
 
   @Override
   public void setVelocity(double revPerMin) {
-    motor.setControl(closedLoopControl.withVelocity(revPerMin / 60.0));
+    motor.setControl(
+        closedLoopControl.withVelocity(Units.RPM.of(revPerMin).in(Units.RotationsPerSecond)));
   }
 
   @Override
   public void setClosedLoopConstants(
-      double kP, double kV, double kS, double maxProfiledAcceleration) {
+      double kP, double kV, double kS, double targetAccelerationConfig) {
     Slot0Configs pidConfig = new Slot0Configs();
     MotionMagicConfigs mmConfig = new MotionMagicConfigs();
 
@@ -94,7 +101,7 @@ public class IntakeIOReal implements IntakeIO {
     pidConfig.kV = kV;
     pidConfig.kS = kS;
 
-    mmConfig.MotionMagicAcceleration = maxProfiledAcceleration;
+    mmConfig.MotionMagicAcceleration = targetAccelerationConfig;
 
     config.apply(pidConfig);
     config.apply(mmConfig);

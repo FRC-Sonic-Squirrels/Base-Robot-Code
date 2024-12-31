@@ -19,6 +19,7 @@ import com.pathplanner.lib.util.PIDConstants;
 import com.pathplanner.lib.util.ReplanningConfig;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.GenericHID;
@@ -38,6 +39,7 @@ import frc.robot.autonomous.AutosManager;
 import frc.robot.autonomous.AutosManager.Auto;
 import frc.robot.autonomous.AutosSubsystems;
 import frc.robot.commands.drive.DrivetrainDefaultTeleopDrive;
+import frc.robot.commands.elevator.ElevatorSetHeight;
 import frc.robot.commands.intake.IntakeGamepiece;
 import frc.robot.commands.led.LedSetStateForSeconds;
 import frc.robot.configs.SimulatorRobotConfig;
@@ -89,8 +91,8 @@ public class RobotContainer {
 
   private final Drivetrain drivetrain;
   private final DrivetrainWrapper drivetrainWrapper;
-  public final AprilTagFieldLayout aprilTagLayout;
-  public final Vision vision;
+  private final AprilTagFieldLayout aprilTagLayout;
+  private final Vision vision;
   private final Arm arm;
   private final Elevator elevator;
   private final Intake intake;
@@ -106,19 +108,23 @@ public class RobotContainer {
   private final HashMap<String, Supplier<Auto>> stringToAutoSupplierMap = new HashMap<>();
   private final AutosManager autoManager;
 
-  private Trigger gamepieceInRobot;
-  private final Trigger twenty_Second_Warning;
+  private Trigger gamepieceInRobot =
+      new Trigger(
+          () -> false); // TODO: move to constructor and add condition for gamepiece in robot
+  private final Trigger
+      twenty_Second_Warning; // TODO: decide whether this is necessary. If it is, make sure to test
+  // it.
 
   public DigitalInput breakModeButton = new DigitalInput(0);
   public DigitalInput homeSensorsButton = new DigitalInput(1);
 
-  Trigger breakModeButtonTrigger =
+  private Trigger breakModeButtonTrigger =
       new Trigger(() -> !breakModeButton.get() && !DriverStation.isEnabled());
 
-  Trigger homeSensorsButtonTrigger =
+  private Trigger homeSensorsButtonTrigger =
       new Trigger(() -> !homeSensorsButton.get() && !DriverStation.isEnabled());
 
-  boolean brakeModeTriggered = true;
+  private boolean brakeModeTriggered = true;
 
   private boolean is_teleop;
   private boolean is_autonomous;
@@ -203,7 +209,7 @@ public class RobotContainer {
                   config,
                   drivetrain::getPoseEstimatorPose),
             };
-            // Sim Cameras
+
             vision =
                 new Vision(
                     aprilTagLayout,
@@ -252,13 +258,34 @@ public class RobotContainer {
           led = new LED(() -> brakeModeTriggered, drivetrain::isGyroConnected);
           break;
 
-        case ROBOT_COMPETITION:
-          // README: for development purposes, comment any of the real IO's you DON'T want
-          // to use
-          // and
-          // uncomment the empty IO's as a replacement
+        case ROBOT_2024_RETIRED_MAESTRO:
+          drivetrain =
+              new Drivetrain(
+                  config,
+                  new GyroIOPigeon2(config, config.getGyroCANID()),
+                  new GyroIOPigeon2(config, Constants.CanIDs.GYRO_2_CAN_ID),
+                  config.getSwerveModuleObjects(),
+                  () -> is_autonomous);
+          intake = new Intake(new IntakeIOReal());
+          elevator = new Elevator(new ElevatorIOReal());
+          arm = new Arm(new ArmIOReal());
+          shooter = new Shooter(new ShooterIOReal());
+          vision =
+              new Vision(
+                  aprilTagLayout,
+                  drivetrain::getPoseEstimatorPose,
+                  drivetrain::getRotationGyroOnly,
+                  drivetrain::addVisionEstimate,
+                  config.getVisionModuleObjects());
 
-          // -- All real IO's
+          visionGamepiece =
+              new VisionGamepiece(
+                  new VisionGamepieceIOReal(), drivetrain::getPoseEstimatorPoseAtTimestamp);
+
+          led = new LED(() -> brakeModeTriggered, drivetrain::isGyroConnected);
+          break;
+
+        case ROBOT_2025:
           drivetrain =
               new Drivetrain(
                   config,
@@ -403,6 +430,9 @@ public class RobotContainer {
                     }));
 
     // ---------- OPERATOR CONTROLS -----------
+
+    operatorController.a().whileTrue(new ElevatorSetHeight(elevator, Units.Inches.of(5)));
+    operatorController.b().whileTrue(new ElevatorSetHeight(elevator, Units.Inches.of(18)));
 
     twenty_Second_Warning.onTrue(
         new LedSetStateForSeconds(led, RobotState.TWENTY_SECOND_WARNING, 0.5));

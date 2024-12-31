@@ -30,6 +30,8 @@ public class Vision extends SubsystemBase {
 
   private static final ExecutionTiming timing = new ExecutionTiming(ROOT_TABLE);
 
+  // Logging
+
   public static final LoggerGroup logGroup = LoggerGroup.build(ROOT_TABLE);
   private static final LoggerEntry.StructArray<Pose3d> logAllAprilTags3D =
       logGroup.buildStructArray(Pose3d.class, "AllAprilTags3D");
@@ -56,6 +58,8 @@ public class Vision extends SubsystemBase {
       logGroupVisibleTags.buildStructArray(Pose3d.class, "posesFedToPoseEstimator3D");
   private static final LoggerEntry.StructArray<Pose2d> log_posesFedToPoseEstimator2D =
       logGroupVisibleTags.buildStructArray(Pose2d.class, "posesFedToPoseEstimator2D");
+
+  // Tunable numbers
 
   protected static final TunableNumberGroup group = new TunableNumberGroup("Vision");
 

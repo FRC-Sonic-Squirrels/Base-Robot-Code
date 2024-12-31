@@ -68,15 +68,6 @@ public class SwerveModules {
     return driveVelocityAverage / 4;
   }
 
-  public double[] getCurrentDrawAmps() {
-    double[] current = new double[8];
-    front_left.getCurrentAmps(current, 0);
-    front_right.getCurrentAmps(current, 2);
-    back_left.getCurrentAmps(current, 4);
-    back_right.getCurrentAmps(current, 6);
-    return current;
-  }
-
   public void registerSignalForOdometry(List<BaseStatusSignal> signals) {
     front_left.registerSignalForOdometry(signals);
     front_right.registerSignalForOdometry(signals);

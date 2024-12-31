@@ -29,6 +29,7 @@ import java.util.List;
 public class SwerveModule {
   public static final int ODOMETRY_FREQUENCY = 250;
 
+  // Logging
   public static final TunableNumberGroup group = new TunableNumberGroup("RobotConfig");
   public static final LoggedTunableNumber turnCruiseVelocity =
       group.build("SwerveTurnCruiseVelocity", 200);
@@ -51,6 +52,7 @@ public class SwerveModule {
   private final SwerveModuleIO.Inputs inputs;
   private final double wheelRadius;
 
+  // Tunable numbers
   private final LoggedTunableNumber driveKS;
   private final LoggedTunableNumber driveKV;
   private final LoggedTunableNumber driveKA;
@@ -68,6 +70,8 @@ public class SwerveModule {
   public SwerveModule(int index, RobotConfig config, SwerveModuleIO io) {
     this.io = io;
 
+    // Logging
+
     String key = "SwerveModule" + index;
     var group = LoggerGroup.build(key);
     log_drivePositionRad = group.buildDecimal("DrivePositionRad");
@@ -84,6 +88,8 @@ public class SwerveModule {
     inputs = new SwerveModuleIO.Inputs(group);
 
     wheelRadius = config.getWheelRadius().in(Units.Meters);
+
+    // Tunable numbers
 
     driveKS = config.getDriveKS();
     driveKV = config.getDriveKV();
@@ -115,6 +121,7 @@ public class SwerveModule {
 
   public void periodic() {
     try (var ignored = timing.start()) {
+      // Logging
       log_drivePositionRad.info(inputs.drivePositionRad);
       log_driveVelocityRadPerSec.info(inputs.driveVelocityRadPerSec);
       log_driveAppliedVolts.info(inputs.driveAppliedVolts);
@@ -167,6 +174,8 @@ public class SwerveModule {
     return io.updateOdometry(inputs, wheelRadius);
   }
 
+  // Setters
+
   /** Runs the module with the specified setpoint state. Returns the optimized state. */
   public SwerveModuleState runSetpoint(
       SwerveModuleState state, double driveMotorMotionMagicAcceleration) {
@@ -205,6 +214,8 @@ public class SwerveModule {
     io.setTurnBrakeMode(enabled);
   }
 
+  // Getters
+
   /** Returns the current turn angle of the module. */
   public Rotation2d getAngle() {
     return inputs.angle;
@@ -233,11 +244,6 @@ public class SwerveModule {
   /** Returns the drive velocity in radians/sec. */
   public double getCharacterizationVelocity() {
     return inputs.driveVelocityRadPerSec;
-  }
-
-  public void getCurrentAmps(double[] array, int offset) {
-    array[offset] = inputs.driveCurrentAmps;
-    array[offset + 1] = inputs.turnCurrentAmps;
   }
 
   public double getAppliedVoltage() {
