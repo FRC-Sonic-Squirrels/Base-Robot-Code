@@ -28,6 +28,11 @@ public class Intake extends SubsystemBase {
   private static final LoggerEntry.Decimal logInputs_appliedVolts =
       logInputs.buildDecimal("AppliedVolts");
 
+  private static final LoggerEntry.Decimal logTargetVelocityRPM =
+      logInputs.buildDecimal("TargetVelocityRPM");
+
+  private double targetRPM;
+
   private static final TunableNumberGroup group = new TunableNumberGroup(ROOT_TABLE);
 
   private static final LoggedTunableNumber kS = group.build("kS");
@@ -38,13 +43,14 @@ public class Intake extends SubsystemBase {
 
   static {
     if (Constants.RobotMode.getRobot() == RobotType.ROBOT_COMPETITION) {
+      kS.initDefault(0);
       kP.initDefault(0.8);
       kV.initDefault(0.15);
       maxProfiledAcceleration.initDefault(300.0);
     } else if (Constants.RobotMode.isSimBot()) {
-
-      kP.initDefault(0.0);
-      kV.initDefault(0.0);
+      kS.initDefault(0);
+      kP.initDefault(0.0006);
+      kV.initDefault(0.0002);
       maxProfiledAcceleration.initDefault(0.0);
     }
   }
@@ -56,13 +62,13 @@ public class Intake extends SubsystemBase {
   public Intake(IntakeIO io) {
     this.io = io;
 
-    io.setClosedLoopConstants(kP.get(), kV.get(), kS.get(), maxProfiledAcceleration.get());
+    setConstants();
   }
 
   @Override
   public void periodic() {
     try (var ignored = timing.start()) {
-      // This method will be called once per scheduler run
+      // Intake Logging
       io.updateInputs(inputs);
       logInputs_velocityRPM.info(inputs.velocityRPM);
       logInputs_currentAmps.info(inputs.currentAmps);
@@ -74,9 +80,13 @@ public class Intake extends SubsystemBase {
           || kP.hasChanged(hc)
           || kV.hasChanged(hc)
           || maxProfiledAcceleration.hasChanged(hc)) {
-        io.setClosedLoopConstants(kP.get(), kV.get(), kS.get(), maxProfiledAcceleration.get());
+        setConstants();
       }
     }
+  }
+
+  private void setConstants() {
+    io.setClosedLoopConstants(kP.get(), kV.get(), kS.get(), maxProfiledAcceleration.get());
   }
 
   public double getCurrentDraw() {
@@ -93,5 +103,7 @@ public class Intake extends SubsystemBase {
 
   public void setVelocity(double revPerMin) {
     io.setVelocity(revPerMin);
+    targetRPM = revPerMin;
+    logTargetVelocityRPM.info(targetRPM);
   }
 }

@@ -28,18 +28,13 @@ public class Arm extends SubsystemBase {
   private static final LoggerEntry.Decimal logInputs_armTempCelsius =
       logInputs.buildDecimal("ArmTempCelsius");
   private static final LoggerEntry.Decimal logInputs_armVelocity =
-      logInputs.buildDecimal("ArmVelocity");
+      logInputs.buildDecimal("ArmVelocityRPM");
 
   private static final LoggerGroup logGroup = LoggerGroup.build(ROOT_TABLE);
   private static final LoggerEntry.EnumValue<ControlMode> logControlMode =
       logGroup.buildEnum("ControlMode");
-  private static final LoggerEntry.Decimal logTargetClosedLoopSetpointDegrees =
-      logGroup.buildDecimal("targetClosedLoopSetpointDegrees");
-
-  public static final LoggerEntry.Decimal logSIM_FF_fG = logGroup.buildDecimal("SIM_FF_fG");
-  public static final LoggerEntry.Decimal logSIM_error = logGroup.buildDecimal("SIM_error");
-  public static final LoggerEntry.Decimal logSIM_controlEffort =
-      logGroup.buildDecimal("SIM_controlEffort");
+  private static final LoggerEntry.Decimal logTargetAngleDegrees =
+      logGroup.buildDecimal("targetAngleDegrees");
 
   private static final TunableNumberGroup group = new TunableNumberGroup(ROOT_TABLE);
 
@@ -58,7 +53,7 @@ public class Arm extends SubsystemBase {
       kD.initDefault(1.6);
       kG.initDefault(0.0);
 
-      // FIXME: find the theoritical from the JVN docs
+      // FIXME: find the theoretical from the JVN docs
       closedLoopMaxVelocityConstraint.initDefault(10);
       closedLoopMaxAccelerationConstraint.initDefault(10);
     } else if (Constants.RobotMode.getRobot() == RobotType.ROBOT_SIMBOT) {
@@ -76,7 +71,7 @@ public class Arm extends SubsystemBase {
   private final ArmIO.Inputs inputs = new ArmIO.Inputs(logInputs);
 
   private ControlMode currentControlMode = ControlMode.OPEN_LOOP;
-  private Rotation2d closedLoopTargetAngle = Constants.zeroRotation2d;
+  private Rotation2d targetAngleDegrees = Constants.zeroRotation2d;
   // FIXME: tune this value
   private final Rotation2d closedLoopTolerance = Rotation2d.fromDegrees(1);
   private static final double MAX_VOLTAGE = 12;
@@ -85,29 +80,23 @@ public class Arm extends SubsystemBase {
   public Arm(ArmIO io) {
     this.io = io;
 
-    // io.resetSensorPosition(Constants.ArmConstants.HOME_POSITION);
     io.setVoltage(0.0);
 
-    io.setClosedLoopConstants(
-        kP.get(),
-        kD.get(),
-        kG.get(),
-        closedLoopMaxVelocityConstraint.get(),
-        closedLoopMaxAccelerationConstraint.get());
+    setConstants();
   }
 
   @Override
   public void periodic() {
     try (var ignored = timing.start()) {
+      // Arm logging
       io.updateInputs(inputs);
       logInputs_armPosition.info(inputs.armPosition);
       logInputs_armAppliedVolts.info(inputs.armAppliedVolts);
       logInputs_armCurrentAmps.info(inputs.armCurrentAmps);
       logInputs_armTempCelsius.info(inputs.armTempCelsius);
-      logInputs_armVelocity.info(inputs.armVelocity);
+      logInputs_armVelocity.info(inputs.armVelocityRPM);
 
       logControlMode.info(currentControlMode);
-      logTargetClosedLoopSetpointDegrees.info(closedLoopTargetAngle);
 
       // ---- UPDATE TUNABLE NUMBERS
       var hc = hashCode();
@@ -116,14 +105,18 @@ public class Arm extends SubsystemBase {
           || kG.hasChanged(hc)
           || closedLoopMaxVelocityConstraint.hasChanged(hc)
           || closedLoopMaxAccelerationConstraint.hasChanged(hc)) {
-        io.setClosedLoopConstants(
-            kP.get(),
-            kD.get(),
-            kG.get(),
-            closedLoopMaxVelocityConstraint.get(),
-            closedLoopMaxAccelerationConstraint.get());
+        setConstants();
       }
     }
+  }
+
+  private void setConstants() {
+    io.setClosedLoopConstants(
+        kP.get(),
+        kD.get(),
+        kG.get(),
+        closedLoopMaxVelocityConstraint.get(),
+        closedLoopMaxAccelerationConstraint.get());
   }
 
   public void setAngle(Rotation2d angle) {
@@ -135,8 +128,9 @@ public class Arm extends SubsystemBase {
                 Constants.ArmConstants.MAX_ARM_ANGLE.getRadians()));
 
     currentControlMode = ControlMode.CLOSED_LOOP;
-    closedLoopTargetAngle = angle;
+    targetAngleDegrees = angle;
     io.setClosedLoopPosition(angle);
+    logTargetAngleDegrees.info(targetAngleDegrees);
   }
 
   public void resetSubsystem() {
@@ -159,7 +153,7 @@ public class Arm extends SubsystemBase {
   }
 
   public boolean isAtTargetAngle() {
-    return isAtTargetAngle(closedLoopTargetAngle);
+    return isAtTargetAngle(targetAngleDegrees);
   }
 
   public boolean isAtTargetAngle(Rotation2d target, Rotation2d tolerance) {
@@ -176,7 +170,7 @@ public class Arm extends SubsystemBase {
   }
 
   public double getVelocity() {
-    return inputs.armVelocity;
+    return inputs.armVelocityRPM;
   }
 
   public boolean setNeutralMode(NeutralModeValue value) {

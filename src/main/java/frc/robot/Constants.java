@@ -197,14 +197,14 @@ public final class Constants {
     public static final double INTAKE_INTAKING_PERCENT_OUT = 1.0;
 
     public static final double GEARING = 1.0;
-    public static final double MOI = 5.0;
+    public static final double MOI = 0.05;
   }
 
   public static class ElevatorConstants {
     // https://ss2930.sharepoint.com/:x:/s/Engineering/ETkKz1CrsINGj5Ia29ENxT4BE_Iqd_kAK_04iaW3kLqPuQ?clickparams=eyJBcHBOYW1lIjoiVGVhbXMtRGVza3RvcCIsIkFwcFZlcnNpb24iOiI0OS8yMzExMzAyODcyNCJ9
     public static final double GEAR_RATIO = 23.05;
     public static final double PULLEY_DIAMETER = 2.256;
-    public static final double CARRIAGE_MASS = 10.0; // arbitrary
+    public static final double CARRIAGE_MASS = 3.0; // arbitrary
     public static final Measure<Distance> MAX_HEIGHT = Units.Inches.of(26.2);
     public static final Measure<Distance> MAX_LEGAL_HEIGHT = Units.Inches.of(26.2); // FIXME
     public static final Measure<Distance> TRUE_TOP_HARD_STOP = Units.Inches.of(26.5);
@@ -271,7 +271,7 @@ public final class Constants {
     }
 
     public static class Launcher {
-      public static final double MOI = 5.0;
+      public static final double MOI = 0.01;
       // FIXME: THIS VALUE HAS TO BE CONFIRMED
       public static final double GEARING = (18.0 / 30.0);
       public static final Measure<Distance> WHEEL_DIAMETER = Units.Inches.of(2.0);
@@ -324,6 +324,8 @@ public final class Constants {
   public static class ArmConstants {
     public static final double GEAR_RATIO = (50.0 / 12.0) * (50.0 / 20.0) * (42.0 / 18.0);
 
+    public static final double MOI = 0.15;
+
     public static final Rotation2d MAX_ARM_ANGLE = Rotation2d.fromDegrees(165);
     public static final Rotation2d MIN_ARM_ANGLE = Rotation2d.fromDegrees(-90);
     public static final Rotation2d HOME_POSITION = MIN_ARM_ANGLE;
@@ -332,7 +334,7 @@ public final class Constants {
 
     public static final Rotation2d TRAP_SCORE_ANGLE = Rotation2d.fromDegrees(15.0);
 
-    public static final Measure<Distance> ARM_LENGTH = Units.Inches.of(15.5);
+    public static final Measure<Distance> ARM_LENGTH = Units.Inches.of(14);
   }
 
   public static class VisionGamepieceConstants {

@@ -13,7 +13,6 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.Distance;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Units;
@@ -115,22 +114,19 @@ public class ElevatorIOReal implements ElevatorIO {
   }
 
   @Override
-  public void setPIDConstraints(double kP, double kD, double kG, Constraints constraints) {
+  public void setClosedLoopConstants(
+      double kP, double kD, double kG, MotionMagicConfigs mmConfigs) {
     Slot0Configs pidConfig = new Slot0Configs();
-    MotionMagicConfigs mmConfig = new MotionMagicConfigs();
 
     motor.getConfigurator().refresh(pidConfig);
-    motor.getConfigurator().refresh(mmConfig);
+    motor.getConfigurator().refresh(mmConfigs);
 
     pidConfig.kP = kP;
     pidConfig.kD = kD;
     pidConfig.kG = kG;
 
-    mmConfig.MotionMagicCruiseVelocity = constraints.maxVelocity;
-    mmConfig.MotionMagicAcceleration = constraints.maxAcceleration;
-
     motor.getConfigurator().apply(pidConfig);
-    motor.getConfigurator().apply(mmConfig);
+    motor.getConfigurator().apply(mmConfigs);
   }
 
   @Override

@@ -177,23 +177,18 @@ public class ShooterIOReal implements ShooterIO {
 
   @Override
   public void setPivotClosedLoopConstants(
-      double kP, double kD, double kG, double maxProfiledVelocity, double maxProfiledAcceleration) {
+      double kP, double kD, double kG, MotionMagicConfigs mmConfigs) {
     Slot0Configs pidConfig = new Slot0Configs();
-    MotionMagicConfigs mmConfig = new MotionMagicConfigs();
 
     var configurator = pivot.getConfigurator();
     configurator.refresh(pidConfig);
-    configurator.refresh(mmConfig);
 
     pidConfig.kP = kP;
     pidConfig.kD = kD;
     pidConfig.kG = kG;
 
-    mmConfig.MotionMagicCruiseVelocity = maxProfiledVelocity;
-    mmConfig.MotionMagicAcceleration = maxProfiledAcceleration;
-
     configurator.apply(pidConfig);
-    configurator.apply(mmConfig);
+    configurator.apply(mmConfigs);
   }
 
   @Override

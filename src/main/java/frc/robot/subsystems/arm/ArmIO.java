@@ -10,11 +10,10 @@ public interface ArmIO {
   /** Contains all of the input data received from hardware. */
   class Inputs extends BaseInputs {
     public Rotation2d armPosition = Constants.zeroRotation2d;
-    public double armAngleDegrees;
     public double armAppliedVolts;
     public double armCurrentAmps;
     public double armTempCelsius;
-    public double armVelocity;
+    public double armVelocityRPM;
 
     public Inputs(LoggerGroup logInputs) {
       super(logInputs);

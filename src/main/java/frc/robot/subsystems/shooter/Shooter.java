@@ -4,6 +4,7 @@
 
 package frc.robot.subsystems.shooter;
 
+import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -18,31 +19,39 @@ public class Shooter extends SubsystemBase {
 
   private static final ExecutionTiming timing = new ExecutionTiming(ROOT_TABLE);
 
+  // Logging
   private static final LoggerGroup logInputs = LoggerGroup.build(ROOT_TABLE);
+
+  // Pivot Logging
   private static final LoggerEntry.Decimal logInputs_pivotPosition =
-      logInputs.buildDecimal("PivotPosition");
+      logInputs.buildDecimal("Pivot/Position");
   private static final LoggerEntry.Decimal logInputs_pivotVelocityRadsPerSec =
-      logInputs.buildDecimal("PivotVelocityRadsPerSec");
+      logInputs.buildDecimal("Pivot/VelocityRadsPerSec");
   private static final LoggerEntry.Decimal logInputs_pivotAppliedVolts =
-      logInputs.buildDecimal("PivotAppliedVolts");
+      logInputs.buildDecimal("Pivot/AppliedVolts");
   private static final LoggerEntry.Decimal logInputs_pivotCurrentAmps =
-      logInputs.buildDecimal("PivotCurrentAmps");
+      logInputs.buildDecimal("Pivot/CurrentAmps");
+
+  private static final LoggerEntry.Decimal logPivotTargetAngleDegrees =
+      logInputs.buildDecimal("Pivot/TargetAngleDegrees");
+
+  // Launcher Logging
   private static final LoggerEntry.DecimalArray logInputs_launcherRPM =
-      logInputs.buildDecimalArray("LauncherRPM");
+      logInputs.buildDecimalArray("Launcher/RPM");
   private static final LoggerEntry.DecimalArray logInputs_launcherAppliedVolts =
-      logInputs.buildDecimalArray("LauncherAppliedVolts");
+      logInputs.buildDecimalArray("Launcher/AppliedVolts");
   private static final LoggerEntry.DecimalArray logInputs_launcherCurrentAmps =
-      logInputs.buildDecimalArray("LauncherCurrentAmps");
+      logInputs.buildDecimalArray("Launcher/CurrentAmps");
   private static final LoggerEntry.DecimalArray logInputs_tempsCelcius =
-      logInputs.buildDecimalArray("TempsCelcius");
+      logInputs.buildDecimalArray("Launcher/TempsCelcius");
 
-  public static final LoggerGroup logGroup = LoggerGroup.build(ROOT_TABLE);
-  private static final LoggerEntry.Decimal logPitchDegrees = logGroup.buildDecimal("PitchDegrees");
-  private static final LoggerEntry.Decimal logTargetPitchDegrees =
-      logGroup.buildDecimal("TargetPitchDegrees");
+  private static final LoggerEntry.DecimalArray logLauncherTargetRPM =
+      logInputs.buildDecimalArray("Launcher/TargetRPM");
 
+  // Tunable Numbers
   public static final TunableNumberGroup group = new TunableNumberGroup(ROOT_TABLE);
 
+  // Pivot Tunable Numbers
   private static final TunableNumberGroup groupPivot = group.subgroup("Pivot");
   private static final LoggedTunableNumber pivotkP = groupPivot.build("kP");
   private static final LoggedTunableNumber pivotkD = groupPivot.build("kD");
@@ -51,29 +60,22 @@ public class Shooter extends SubsystemBase {
       groupPivot.build("ClosedLoopMaxVelocityConstraint");
   private static final LoggedTunableNumber pivotClosedLoopMaxAccelerationConstraint =
       groupPivot.build("ClosedLoopMaxAccelerationConstraint");
+  private static final LoggedTunableNumber pivotToleranceDegrees =
+      groupPivot.build("pivotToleranceDegrees", 0.5);
 
+  // Launcher Tunable Numbers
   private static final TunableNumberGroup groupLauncher = group.subgroup("Launcher");
   private static final LoggedTunableNumber launcherkS = groupLauncher.build("kS");
   private static final LoggedTunableNumber launcherkP = groupLauncher.build("kP");
   private static final LoggedTunableNumber launcherkV = groupLauncher.build("kV");
   private static final LoggedTunableNumber launcherClosedLoopMaxAccelerationConstraint =
       groupLauncher.build("ClosedLoopMaxAccelerationConstraint");
-
-  private static final TunableNumberGroup groupKicker = group.subgroup("Kicker");
-  private static final LoggedTunableNumber kickerkP = groupKicker.build("kP");
-  private static final LoggedTunableNumber kickerkV = groupKicker.build("kV");
-  private static final LoggedTunableNumber kickerClosedLoopMaxAccelerationConstraint =
-      groupKicker.build("ClosedLoopMaxAccelerationConstraint");
-
-  private static final LoggedTunableNumber pivotToleranceDegrees =
-      group.build("pivotToleranceDegrees", 0.5);
   private static final LoggedTunableNumber launcherToleranceRPM =
-      group.build("launcherToleranceRPM", 150); // TODO: tune for better tolerance
-  public static final LoggedTunableNumber distanceToTriggerNoteDetection =
-      group.build("distanceToTriggerNote", 10.0);
+      groupLauncher.build("launcherToleranceRPM", 150); // TODO: tune for better tolerance
 
   static {
     if (Constants.RobotMode.getRobot() == RobotType.ROBOT_COMPETITION) {
+
       pivotkP.initDefault(800.0);
       pivotkD.initDefault(0.0);
       pivotkG.initDefault(0.0);
@@ -85,10 +87,8 @@ public class Shooter extends SubsystemBase {
       launcherkV.initDefault(0.072);
       launcherClosedLoopMaxAccelerationConstraint.initDefault(1000.0);
 
-      kickerkP.initDefault(0.6);
-      kickerkV.initDefault(0.18);
-      kickerClosedLoopMaxAccelerationConstraint.initDefault(300.0);
     } else if (Constants.RobotMode.isSimBot()) {
+
       pivotkP.initDefault(15.0);
       pivotkD.initDefault(0.0);
       pivotkG.initDefault(0.0);
@@ -96,13 +96,9 @@ public class Shooter extends SubsystemBase {
       pivotClosedLoopMaxAccelerationConstraint.initDefault(10.0);
 
       launcherkS.initDefault(0.0);
-      launcherkP.initDefault(0.5);
-      launcherkV.initDefault(0.13);
-      launcherClosedLoopMaxAccelerationConstraint.initDefault(10.0);
-
-      kickerkP.initDefault(0.0);
-      kickerkV.initDefault(0.0);
-      kickerClosedLoopMaxAccelerationConstraint.initDefault(0.0);
+      launcherkP.initDefault(0.05);
+      launcherkV.initDefault(1);
+      launcherClosedLoopMaxAccelerationConstraint.initDefault(0.0);
     }
   }
 
@@ -116,46 +112,35 @@ public class Shooter extends SubsystemBase {
   public Shooter(ShooterIO io) {
     this.io = io;
 
-    io.setLauncherClosedLoopConstants(
-        launcherkP.get(),
-        launcherkV.get(),
-        launcherkS.get(),
-        launcherClosedLoopMaxAccelerationConstraint.get());
+    setLauncherClosedLoopConstants();
 
-    io.setPivotClosedLoopConstants(
-        pivotkP.get(),
-        pivotkD.get(),
-        pivotkG.get(),
-        pivotClosedLoopMaxVelocityConstraint.get(),
-        pivotClosedLoopMaxAccelerationConstraint.get());
+    setPivotClosedLoopConstants();
   }
 
   @Override
   public void periodic() {
     try (var ignored = timing.start()) {
       io.updateInputs(inputs);
+
+      // Pivot logging
       logInputs_pivotPosition.info(inputs.pivotPosition);
       logInputs_pivotVelocityRadsPerSec.info(inputs.pivotVelocityRadsPerSec);
       logInputs_pivotAppliedVolts.info(inputs.pivotAppliedVolts);
       logInputs_pivotCurrentAmps.info(inputs.pivotCurrentAmps);
+
+      // Launcher logging
       logInputs_launcherRPM.info(inputs.launcherRPM);
       logInputs_launcherAppliedVolts.info(inputs.launcherAppliedVolts);
       logInputs_launcherCurrentAmps.info(inputs.launcherCurrentAmps);
       logInputs_tempsCelcius.info(inputs.tempsCelcius);
 
-      logPitchDegrees.info(inputs.pivotPosition.getDegrees());
-      logTargetPitchDegrees.info(targetPivotPosition.getDegrees());
-
+      // Update constants
       var hc = hashCode();
       if (launcherkS.hasChanged(hc)
           || launcherkP.hasChanged(hc)
           || launcherkV.hasChanged(hc)
           || launcherClosedLoopMaxAccelerationConstraint.hasChanged(hc)) {
-        io.setLauncherClosedLoopConstants(
-            launcherkP.get(),
-            launcherkV.get(),
-            launcherkS.get(),
-            launcherClosedLoopMaxAccelerationConstraint.get());
+        setLauncherClosedLoopConstants();
       }
 
       if (pivotkP.hasChanged(hc)
@@ -164,28 +149,32 @@ public class Shooter extends SubsystemBase {
           || pivotClosedLoopMaxVelocityConstraint.hasChanged(hc)
           || pivotClosedLoopMaxAccelerationConstraint.hasChanged(hc)) {
 
-        io.setPivotClosedLoopConstants(
-            pivotkP.get(),
-            pivotkD.get(),
-            pivotkG.get(),
-            pivotClosedLoopMaxVelocityConstraint.get(),
-            pivotClosedLoopMaxAccelerationConstraint.get());
+        setPivotClosedLoopConstants();
       }
     }
   }
+
+  // Launcher setters
 
   public void setLauncherPercentOut(double percent) {
     io.setLauncherVoltage(percent * MAX_VOLTAGE);
   }
 
-  public void setLauncherVoltage(double volts) {
-    io.setLauncherVoltage(volts);
-  }
-
   public void setLauncherRPM(double rpm) {
     io.setLauncherRPM(rpm);
     rollerTargetRPM = rpm;
+    logLauncherTargetRPM.info(rpm);
   }
+
+  public void setLauncherClosedLoopConstants() {
+    io.setLauncherClosedLoopConstants(
+        launcherkP.get(),
+        launcherkV.get(),
+        launcherkS.get(),
+        launcherClosedLoopMaxAccelerationConstraint.get());
+  }
+
+  // Launcher getters
 
   public double getRPM() {
     return inputs.launcherRPM;
@@ -199,17 +188,39 @@ public class Shooter extends SubsystemBase {
     return inputs.launcherRPM > rpm - launcherToleranceRPM.get();
   }
 
+  // Pivot setters
+
   public void setPivotVoltage(double volts) {
     io.setPivotVoltage(volts);
-  }
-
-  public double getPivotVoltage() {
-    return inputs.pivotAppliedVolts;
   }
 
   public void setPivotPosition(Rotation2d rot) {
     io.setPivotPosition(rot);
     targetPivotPosition = rot;
+    logPivotTargetAngleDegrees.info(rot);
+  }
+
+  public void setPivotClosedLoopConstants() {
+    MotionMagicConfigs mmConfigs = new MotionMagicConfigs();
+
+    mmConfigs.MotionMagicAcceleration = pivotClosedLoopMaxAccelerationConstraint.get();
+    mmConfigs.MotionMagicCruiseVelocity = pivotClosedLoopMaxVelocityConstraint.get();
+
+    io.setPivotClosedLoopConstants(pivotkP.get(), pivotkD.get(), pivotkG.get(), mmConfigs);
+  }
+
+  public void pivotResetHomePosition() {
+    io.resetPivotSensorPosition(Constants.ShooterConstants.Pivot.HOME_POSITION);
+  }
+
+  public boolean setNeutralMode(NeutralModeValue value) {
+    return io.setNeutralMode(value);
+  }
+
+  // Pivot Getters
+
+  public double getPivotVoltage() {
+    return inputs.pivotAppliedVolts;
   }
 
   public Rotation2d getPivotPosition() {
@@ -218,11 +229,6 @@ public class Shooter extends SubsystemBase {
 
   public double getPivotVelocity() {
     return inputs.pivotVelocityRadsPerSec;
-  }
-
-  public void setPivotClosedLoopConstants(
-      double kP, double kD, double kG, double maxProfiledVelocity, double maxProfiledAcceleration) {
-    io.setPivotClosedLoopConstants(kP, kD, kG, maxProfiledVelocity, maxProfiledAcceleration);
   }
 
   public boolean isPivotIsAtTarget() {
@@ -236,13 +242,5 @@ public class Shooter extends SubsystemBase {
   public boolean isPivotIsAtTarget(Rotation2d target, Rotation2d tolerance) {
     return Math.abs(inputs.pivotPosition.getRadians() - target.getRadians())
         <= tolerance.getRadians();
-  }
-
-  public void pivotResetHomePosition() {
-    io.resetPivotSensorPosition(Constants.ShooterConstants.Pivot.HOME_POSITION);
-  }
-
-  public boolean setNeutralMode(NeutralModeValue value) {
-    return io.setNeutralMode(value);
   }
 }

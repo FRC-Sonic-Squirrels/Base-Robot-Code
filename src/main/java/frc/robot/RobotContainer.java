@@ -106,8 +106,12 @@ public class RobotContainer {
   private final HashMap<String, Supplier<Auto>> stringToAutoSupplierMap = new HashMap<>();
   private final AutosManager autoManager;
 
-  private Trigger gamepieceInRobot;
-  private final Trigger twenty_Second_Warning;
+  private Trigger gamepieceInRobot =
+      new Trigger(
+          () -> false); // TODO: move to constructor and add condition for gamepiece in robot
+  private final Trigger
+      twenty_Second_Warning; // TODO: decide whether this is necessary. If it is, make sure to test
+  // it.
 
   public DigitalInput breakModeButton = new DigitalInput(0);
   public DigitalInput homeSensorsButton = new DigitalInput(1);

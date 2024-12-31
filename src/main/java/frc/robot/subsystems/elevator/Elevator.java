@@ -4,6 +4,7 @@
 
 package frc.robot.subsystems.elevator;
 
+import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.units.Distance;
@@ -37,9 +38,6 @@ public class Elevator extends SubsystemBase {
 
   private static final LoggerGroup logGroup = LoggerGroup.build(ROOT_TABLE);
   private static final LoggerEntry.Decimal logTargetHeight = logGroup.buildDecimal("targetHeight");
-  public static final LoggerEntry.Decimal logSIM_ActualTargetHeight =
-      logGroup.buildDecimal("SIM_actualTargetHeight");
-  public static final LoggerEntry.Decimal logSIM_Error = logGroup.buildDecimal("SIM_error");
 
   private static final TunableNumberGroup group = new TunableNumberGroup(ROOT_TABLE);
 
@@ -60,9 +58,9 @@ public class Elevator extends SubsystemBase {
 
   static {
     if (Constants.RobotMode.getRobot() == RobotType.ROBOT_SIMBOT) {
-      kP.initDefault(1.0);
+      kP.initDefault(0.01);
       kD.initDefault(0.0);
-      kG.initDefault(0.0);
+      kG.initDefault(1.84255);
 
       closedLoopMaxVelocityConstraint.initDefault(640.0);
       closedLoopMaxAccelerationConstraint.initDefault(640.0);
@@ -90,12 +88,7 @@ public class Elevator extends SubsystemBase {
   public Elevator(ElevatorIO io) {
     this.io = io;
 
-    setClosedLoopConstraints(
-        kP.get(),
-        kD.get(),
-        kG.get(),
-        new Constraints(
-            closedLoopMaxVelocityConstraint.get(), closedLoopMaxAccelerationConstraint.get()));
+    setConstants();
   }
 
   @Override
@@ -108,8 +101,6 @@ public class Elevator extends SubsystemBase {
       logInputs_currentAmps.info(inputs.currentAmps);
       logInputs_tempCelsius.info(inputs.tempCelsius);
 
-      logTargetHeight.info(targetHeight.in(Units.Inches));
-
       // ---- UPDATE TUNABLE NUMBERS
       var hc = hashCode();
       if (kP.hasChanged(hc)
@@ -117,12 +108,7 @@ public class Elevator extends SubsystemBase {
           || kG.hasChanged(hc)
           || closedLoopMaxVelocityConstraint.hasChanged(hc)
           || closedLoopMaxAccelerationConstraint.hasChanged(hc)) {
-        setClosedLoopConstraints(
-            kP.get(),
-            kD.get(),
-            kG.get(),
-            new Constraints(
-                closedLoopMaxVelocityConstraint.get(), closedLoopMaxAccelerationConstraint.get()));
+        setConstants();
       }
     }
   }
@@ -138,6 +124,7 @@ public class Elevator extends SubsystemBase {
   public void setHeight(Measure<Distance> height) {
     io.setHeight(height);
     targetHeight = height;
+    logTargetHeight.info(targetHeight.in(Units.Inches));
   }
 
   public boolean isAtTarget() {
@@ -168,15 +155,11 @@ public class Elevator extends SubsystemBase {
     return io.setNeutralMode(value);
   }
 
-  private void setClosedLoopConstraints(double kp, double kd, double kg, Constraints constraints) {
-    currentMotionMagicConstraints =
-        new Constraints(constraints.maxVelocity, constraints.maxAcceleration);
-
-    io.setPIDConstraints(kp, kd, kg, constraints);
-  }
-
-  public void setMotionMagicConstraints(Constraints constraints) {
-    setClosedLoopConstraints(kP.get(), kD.get(), kG.get(), constraints);
+  public void setConstants() {
+    MotionMagicConfigs mmConfigs = new MotionMagicConfigs();
+    mmConfigs.MotionMagicAcceleration = closedLoopMaxAccelerationConstraint.get();
+    mmConfigs.MotionMagicCruiseVelocity = closedLoopMaxVelocityConstraint.get();
+    io.setClosedLoopConstants(kP.get(), kD.get(), kG.get(), mmConfigs);
   }
 
   public Constraints getDefaultMotionMagicConstraints() {

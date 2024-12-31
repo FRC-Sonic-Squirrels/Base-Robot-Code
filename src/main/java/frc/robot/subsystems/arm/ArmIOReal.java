@@ -82,11 +82,10 @@ public class ArmIOReal implements ArmIO {
 
     // could look into latency compensating this value
     inputs.armPosition = Rotation2d.fromRotations(positionRotations.getValueAsDouble());
-    inputs.armAngleDegrees = inputs.armPosition.getDegrees();
     inputs.armAppliedVolts = appliedVols.getValueAsDouble();
     inputs.armCurrentAmps = currentAmps.getValueAsDouble();
     inputs.armTempCelsius = tempCelsius.getValueAsDouble();
-    inputs.armVelocity = velocity.getValueAsDouble();
+    inputs.armVelocityRPM = velocity.getValueAsDouble();
   }
 
   @Override
